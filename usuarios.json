@@ -1,68 +1,57 @@
 
-{
-    "usuarios": [
+[
         {
             "id_usuario": 1,
             "nombre": "lgarcia",
-            "contraseña_hash": "Laura1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 2,
             "nombre": "cfernandez",
-            "contraseña_hash": "Carlos1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 3,
             "nombre": "msanchez",
-            "contraseña_hash": "Maria1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 4,
             "nombre": "asantos",
-            "contraseña_hash": "Andres1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 5,
             "nombre": "etorres",
-            "contraseña_hash": "Elena1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 6,
             "nombre": "Javier",
             "apellidos": "Ramírez Gómez",
             "nombre_usuario": "jramirez",
-            "contraseña_hash": "Javier1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 7,
             "nombre": "lmartinez",
-            "contraseña_hash": "Lucia123",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 8,
             "nombre": "dserrano",
-            "contraseña_hash": "David1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 9,
             "nombre": "scastro",
-            "contraseña_hash": "Sara1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         },
         {
             "id_usuario": 10,
             "nombre": "pvega",
-            "contraseña_hash": "Pablo1234",
-            "rol": "trabajador"
+            "rol": "Trabajador"
         }
     ]
-}
+
 

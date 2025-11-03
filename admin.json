@@ -1,44 +1,31 @@
-{
-    "admins": [
+ [
         {
             "id_admin": 1,
-            "nombre": "Jorge",
             "apellidos": "García González",
-            "nombre_usuario": "jgarcia",
-            "contraseña_hash": "JorgeAdmin123",
-            "rol": "administrador"
+            "nombre": "jgarcia",
+            "rol": "Administrador"
         },
         {
             "id_admin": 2,
             "nombre": "Ana",
             "apellidos": "Morales Díaz",
             "nombre_usuario": "amorales",
-            "contraseña": "AnaAdmin123",
-            "rol": "administrador"
+            "rol": "Administrador"
         },
         {
             "id_admin": 3,
-            "nombre": "Luis",
-            "apellidos": "Fernández Vega",
             "nombre_usuario": "lfernandez",
-            "contraseña": "LuisAdmin123",
-            "rol": "administrador"
+            "rol": "Administrador"
         },
         {
             "id_admin": 4,
-            "nombre": "Carmen",
-            "apellidos": "Serrano López",
-            "nombre_usuario": "cserrano",
-            "contraseña": "CarmenAdmin123",
-            "rol": "administrador"
+            "nombre": "cserrano",
+            "rol": "Administrador"
         },
         {
             "id_admin": 5,
-            "nombre": "Miguel",
             "apellidos": "Ruiz Herrera",
-            "nombre_usuario": "mruiz",
-            "contraseña": "MiguelAdmin123",
-            "rol": "administrador"
+            "nombre": "mruiz",
+            "rol": "Administrador"
         }
     ]
-}
