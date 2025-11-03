@@ -6,70 +6,80 @@
             "nombre": "Laura",
             "apellidos": "García Pérez",
             "nombre_usuario": "lgarcia",
-            "contraseña": "Laura1234"
+            "contraseña": "Laura1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 2,
             "nombre": "Carlos",
             "apellidos": "Fernández Ruiz",
             "nombre_usuario": "cfernandez",
-            "contraseña": "Carlos1234"
+            "contraseña": "Carlos1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 3,
             "nombre": "María",
             "apellidos": "Sanchez",
             "nombre_usuario": "msanchez",
-            "contraseña": "Maria1234"
+            "contraseña": "Maria1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 4,
             "nombre": "Andrés",
             "apellidos": "Santos Morales",
             "nombre_usuario": "asantos",
-            "contraseña": "Andres1234"
+            "contraseña": "Andres1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 5,
             "nombre": "Elena",
             "apellidos": "Torres Díaz",
             "nombre_usuario": "etorres",
-            "contraseña": "Elena1234"
+            "contraseña": "Elena1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 6,
             "nombre": "Javier",
             "apellidos": "Ramírez Gómez",
             "nombre_usuario": "jramirez",
-            "contraseña": "Javier1234"
+            "contraseña": "Javier1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 7,
             "nombre": "Lucía",
             "apellidos": "Martínez Herrera",
             "nombre_usuario": "lmartinez",
-            "contraseña": "Lucia123"
+            "contraseña": "Lucia123",
+            "rol": "usuario"
         },
         {
             "id_usuario": 8,
             "nombre": "David",
             "apellidos": "Serrano Ortega",
             "nombre_usuario": "dserrano",
-            "contraseña": "David1234"
+            "contraseña": "David1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 9,
             "nombre": "Sara",
             "apellidos": "Castro Navarro",
             "nombre_usuario": "scastro",
-            "contraseña": "Sara1234"
+            "contraseña": "Sara1234",
+            "rol": "usuario"
         },
         {
             "id_usuario": 10,
             "nombre": "Pablo",
             "apellidos": "Vega López",
             "nombre_usuario": "pvega",
-            "contraseña": "Pablo1234"
+            "contraseña": "Pablo1234",
+            "rol": "usuario"
         }
     ]
 }
