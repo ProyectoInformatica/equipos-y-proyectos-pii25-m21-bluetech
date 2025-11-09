@@ -1,0 +1,31 @@
+ [
+        {
+            "id_admin": 1,
+            "apellidos": "García González",
+            "nombre": "jgarcia",
+            "rol": "Administrador"
+        },
+        {
+            "id_admin": 2,
+            "nombre": "Ana",
+            "apellidos": "Morales Díaz",
+            "nombre_usuario": "amorales",
+            "rol": "Administrador"
+        },
+        {
+            "id_admin": 3,
+            "nombre_usuario": "lfernandez",
+            "rol": "Administrador"
+        },
+        {
+            "id_admin": 4,
+            "nombre": "cserrano",
+            "rol": "Administrador"
+        },
+        {
+            "id_admin": 5,
+            "apellidos": "Ruiz Herrera",
+            "nombre": "mruiz",
+            "rol": "Administrador"
+        }
+    ]
