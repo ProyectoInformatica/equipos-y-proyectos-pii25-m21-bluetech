@@ -1,0 +1,66 @@
+{
+  "usuarios": [
+    {
+      "id_usuario": 1,
+      "nombre": "lgarcia",
+      "contraseña": "Laura1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 2,
+      "nombre": "cfernandez",
+      "contraseña": "Carlos1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 3,
+      "nombre": "msanchez",
+      "contraseña": "Maria1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 4,
+      "nombre": "asantos",
+      "contraseña": "Andres1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 5,
+      "nombre": "etorres",
+      "contraseña": "Elena1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 6,
+      "nombre": "Javier",
+      "apellidos": "Ramírez Gómez",
+      "nombre_usuario": "jramirez",
+      "contraseña": "Javier1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 7,
+      "nombre": "lmartinez",
+      "contraseña": "Lucia123",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 8,
+      "nombre": "dserrano",
+      "contraseña": "David1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 9,
+      "nombre": "scastro",
+      "contraseña": "Sara1234",
+      "rol": "trabajador"
+    },
+    {
+      "id_usuario": 10,
+      "nombre": "pvega",
+      "contraseña": "Pablo1234",
+      "rol": "trabajador"
+    }
+  ]
+}
