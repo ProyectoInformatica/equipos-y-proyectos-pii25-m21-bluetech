@@ -1,0 +1,57 @@
+
+[
+        {
+            "id_usuario": 1,
+            "nombre": "lgarcia",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 2,
+            "nombre": "cfernandez",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 3,
+            "nombre": "msanchez",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 4,
+            "nombre": "asantos",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 5,
+            "nombre": "etorres",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 6,
+            "nombre": "Javier",
+            "apellidos": "Ramírez Gómez",
+            "nombre_usuario": "jramirez",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 7,
+            "nombre": "lmartinez",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 8,
+            "nombre": "dserrano",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 9,
+            "nombre": "scastro",
+            "rol": "Trabajador"
+        },
+        {
+            "id_usuario": 10,
+            "nombre": "pvega",
+            "rol": "Trabajador"
+        }
+    ]
+
+
