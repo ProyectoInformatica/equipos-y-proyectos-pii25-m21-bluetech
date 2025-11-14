@@ -2,31 +2,41 @@
   "usuarios": [
     {
       "id_usuario": 1,
-      "nombre": "lgarcia",
+      "nombre": "Laura",
+      "apellidos": "García Gallardo",
+      "nombre_usuario": "lgarcia",
       "contraseña": "Laura1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 2,
-      "nombre": "cfernandez",
+      "nombre": "Carlos",
+      "apellidos": "Fernández Expósito",
+      "nombre_usuario": "cfernandez",
       "contraseña": "Carlos1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 3,
-      "nombre": "msanchez",
+      "nombre": "María",
+      "apellidos": "Sánchez García",
+      "nombre_usuario": "msanchez",
       "contraseña": "Maria1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 4,
-      "nombre": "asantos",
+      "nombre": "Andrés",
+      "apellidos": "Santos Fernández",
+      "nombre_usuario": "asantos",
       "contraseña": "Andres1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 5,
-      "nombre": "etorres",
+      "nombre": "Elena",
+      "apellidos": "Torres López",
+      "nombre_usuario": "etorres",
       "contraseña": "Elena1234",
       "rol": "trabajador"
     },
@@ -40,27 +50,76 @@
     },
     {
       "id_usuario": 7,
-      "nombre": "lmartinez",
+      "nombre": "Lucía",
+      "apellidos": "Martínez González",
+      "nombre_usuario": "lmartinez",
       "contraseña": "Lucia123",
       "rol": "trabajador"
     },
     {
       "id_usuario": 8,
-      "nombre": "dserrano",
+      "nombre": "David",
+      "apellidos": "Serrano Sánchez",
+      "nombre_usuario": "dserrano",
       "contraseña": "David1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 9,
-      "nombre": "scastro",
+      "nombre": "Sara",
+      "apellidos": "Castro Gómez",
+      "nombre_usuario": "scastro",
       "contraseña": "Sara1234",
       "rol": "trabajador"
     },
     {
       "id_usuario": 10,
-      "nombre": "pvega",
+      "nombre": "Pablo",
+      "apellidos": "Vega Pérez",
+      "nombre_usuario": "pvega",
       "contraseña": "Pablo1234",
       "rol": "trabajador"
+    },
+
+    {
+      "id_usuario": 1,
+      "nombre": "Jorge",
+      "apellidos": "García González",
+      "nombre_usuario": "jgarcia",
+      "contraseña": "JorgeAdmin123",
+      "rol": "administrador"
+    },
+    {
+      "id_usuario": 2,
+      "nombre": "Ana",
+      "apellidos": "Morales Díaz",
+      "nombre_usuario": "amorales",
+      "contraseña": "AnaAdmin123",
+      "rol": "administrador"
+    },
+    {
+      "id_usuario": 3,
+      "nombre": "Luis",
+      "apellidos": "Fernández Vega",
+      "nombre_usuario": "lfernandez",
+      "contraseña": "LuisAdmin123",
+      "rol": "administrador"
+    },
+    {
+      "id_usuario": 4,
+      "nombre": "Carmen",
+      "apellidos": "Serrano López",
+      "nombre_usuario": "cserrano",
+      "contraseña": "CarmenAdmin123",
+      "rol": "administrador"
+    },
+    {
+      "id_usuario": 5,
+      "nombre": "Miguel",
+      "apellidos": "Ruiz Herrera",
+      "nombre_usuario": "mruiz",
+      "contraseña": "MiguelAdmin123",
+      "rol": "administrador"
     }
   ]
 }

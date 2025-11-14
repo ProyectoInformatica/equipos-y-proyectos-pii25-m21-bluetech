@@ -83,8 +83,9 @@ def main():
     print("   Bienvenido/a al sistema BlueTech")
     print("=======================================")
 
-    # Se crea un repositorio de credenciales con las rutas a los archivos JSON.
-    repo = RepositorioCredenciales("admins.json", "usuarios.json")
+    # Se crea un repositorio de credenciales con la ruta al archivo JSON unificado de usuarios.
+    # En este archivo se encuentran tanto administradores como trabajadores bajo la clave "usuarios".
+    repo = RepositorioCredenciales(ruta_usuarios="usuarios.json")
 
     ejecutando = True  # Controla el ciclo principal del programa.
 
