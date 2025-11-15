@@ -1,15 +1,16 @@
 # Primera implementación del código del sprint 1:
 # Incluye el inicio de sesión de usuarios/administrador
 # Selección de rol. 
-# 
+#
 # Segunda implementación del código del sprint 2:
 # Incluye funciones para agregar y eliminar usuarios
 # Incluye funciones para consultar y cambiar los parámetros de sanidad
 # Incluye funciones para visualizar y cambiar el estado de ocupación de las salas
 # Se emplea hash para las contraseñas 
 #==============================================================================================
-import json  # Se importa el módulo "json" para leer y escribir archivos en formato JSON.
-import hashlib  # Se importa hashlib para poder calcular el hash (SHA-256) de las contraseñas.
+
+import json      # Se importa el módulo "json" para leer y escribir archivos en formato JSON.
+import hashlib   # Se importa hashlib para poder calcular el hash (SHA-256) de las contraseñas.
 
 
 # Clase que define los tipos de roles posibles para un usuario.
@@ -31,8 +32,7 @@ class Usuario:
 
     def verificar_contrasena(self, contrasena_ingresada):
         # Compara la contraseña ingresada con la almacenada y devuelve True si coinciden.
-        # Ahora, en lugar de comparar texto plano, se calcula el hash de la contraseña
-        # introducida por el usuario y se compara con el hash almacenado.
+        # Se calcula el hash de la contraseña introducida y se compara con el hash guardado.
         hash_ingresado = hashlib.sha256(contrasena_ingresada.encode("utf-8")).hexdigest()
         return hash_ingresado == self.contrasena_hash
 
@@ -45,19 +45,19 @@ class Usuario:
         return self.rol == Rol.TRABAJADOR
 
 
-# Clase encargada de manejar las credenciales de los JSON.
+# Clase encargada de manejar las credenciales del JSON unificado de usuarios.
 class RepositorioCredenciales:
-    def __init__(self, ruta_admins="admins.json", ruta_usuarios="usuarios.json"):
-        # Constructor que define las rutas de los archivos y carga los datos.
-        # Históricamente se utilizaban dos archivos (uno para admins y otro para usuarios),
-        # pero actualmente se está utilizando un único JSON (ruta_usuarios) que contiene
+    def __init__(self, ruta_usuarios="usuarios.json"):
+        # Constructor que define la ruta del archivo y carga los datos.
+        # Actualmente se utiliza un único JSON (ruta_usuarios) que contiene
         # tanto administradores como trabajadores bajo la clave "usuarios".
-        self.ruta_admins = ruta_admins        # Se mantiene por compatibilidad, aunque ya no se use.
-        self.ruta_usuarios = ruta_usuarios    # Aquí se encuentra el JSON unificado con todos los usuarios.
+        self.ruta_usuarios = ruta_usuarios    # Aquí se encuentra el JSON con todos los usuarios.
 
-        self.admins = []    # Lista donde se almacenan los administradores cargados.
-        self.usuarios = []  # Lista donde se almacenan los usuarios cargados.
-        self.cargar_datos() # Se llama automáticamente al método que carga los datos desde el archivo.
+        # Lista donde se almacenan todos los usuarios cargados (admins y trabajadores).
+        self.usuarios = []
+
+        # Se llama automáticamente al método que carga los datos desde el archivo.
+        self.cargar_datos()
 
     def _obtener_nombre_login(self, entrada_json):
         # Método de apoyo que decide qué campo usar como nombre de usuario para el login.
@@ -114,10 +114,9 @@ class RepositorioCredenciales:
         return None
 
     def cargar_datos(self):
-        # Carga los datos de los JSON y crea objetos Usuario para cada entrada.
-        # En la versión actual, sólo se utiliza el archivo 'ruta_usuarios', que contiene
-        # tanto administradores como trabajadores en una única lista llamada "usuarios".
-        self.admins = []
+        # Carga los datos del JSON y crea objetos Usuario para cada entrada.
+        # En la versión actual, se utiliza el archivo 'ruta_usuarios', que contiene
+        # administradores y trabajadores en una única lista llamada "usuarios".
         self.usuarios = []
 
         f2 = None
@@ -125,11 +124,14 @@ class RepositorioCredenciales:
             # Se intenta abrir el archivo de usuarios (trabajadores y administradores).
             f2 = open(self.ruta_usuarios, "r", encoding="utf-8")
             data_users = json.load(f2)
-            lista2 = data_users.get("usuarios", [])  # Se obtiene la lista de usuarios (de ambos roles).
+
+            # Se obtiene la lista de usuarios (de ambos roles).
+            lista = data_users.get("usuarios", [])
+
             j = 0
-            total2 = len(lista2)
-            while j < total2:
-                u = lista2[j]
+            total = len(lista)
+            while j < total:
+                u = lista[j]
 
                 # Se determina el nombre de usuario que se utilizará para el login.
                 nombre_login = self._obtener_nombre_login(u)
@@ -156,37 +158,137 @@ class RepositorioCredenciales:
                         rol=rol_normalizado
                     )
 
-                    # Se agrega el usuario a la lista correspondiente en función de su rol.
-                    if rol_normalizado == Rol.ADMINISTRADOR:
-                        self.admins.append(nuevo)
-                    elif rol_normalizado == Rol.TRABAJADOR:
-                        self.usuarios.append(nuevo)
+                    # Se agrega el usuario a la lista general de usuarios (admins y trabajadores).
+                    self.usuarios.append(nuevo)
 
                 j = j + 1
+
         except FileNotFoundError:
             # Si no se encuentra el archivo, se muestra un mensaje.
             print("No se encontró el archivo de usuarios:", self.ruta_usuarios)
+
         if f2 is not None:
             f2.close()  # Se cierra el archivo si fue abierto correctamente.
 
     def verificar_login(self, nombre_usuario, contrasena, rol):
-        # Método que verifica si un usuario (o administrador) existe y su contraseña es correcta.
+        # Método que verifica si un usuario existe y su contraseña es correcta.
         # Ahora utiliza el hash de la contraseña en lugar de texto plano.
-        if rol == Rol.ADMINISTRADOR:
-            lista = self.admins
-        else:
-            lista = self.usuarios
-
+        # Se comprueba también que el rol del usuario coincida con el rol seleccionado.
         encontrado = None
         i = 0
-        total = len(lista)
-        # Se recorre la lista del tipo de usuario correspondiente.
+        total = len(self.usuarios)
+
+        # Se recorre la lista completa de usuarios (administradores y trabajadores).
         while i < total and encontrado is None:
-            u = lista[i]
-            # Se compara el nombre y la contraseña.
-            # Dentro de 'verificar_contrasena' se calcula el hash de la contraseña introducida.
-            if u.nombre_usuario == nombre_usuario and u.verificar_contrasena(contrasena):
-                encontrado = u  # Si coincide, se guarda el usuario encontrado.
+            u = self.usuarios[i]
+
+            if (
+                u.nombre_usuario == nombre_usuario
+                and u.rol == rol
+                and u.verificar_contrasena(contrasena)
+            ):
+                # Si coincide el login, el rol y la contraseña, se guarda el usuario.
+                encontrado = u
+
             i = i + 1
 
-        return encontrado  # Devuelve el objeto Usuario si fue encontrado, o None si no existe.
+        # Devuelve el objeto Usuario si fue encontrado, o None si no existe o los datos no coinciden.
+        return encontrado
+
+    def eliminar_usuario_por_id(self, id_usuario):
+        # Elimina un usuario del sistema a partir de su ID.
+        # La eliminación se hace sobre el archivo JSON de usuarios (self.ruta_usuarios)
+        # y después se recarga la información en memoria llamando a cargar_datos().
+
+        # Primero intentamos leer el archivo JSON de usuarios.
+        datos = None
+        f = None
+
+        try:
+            f = open(self.ruta_usuarios, "r", encoding="utf-8")
+            datos = json.load(f)
+        except FileNotFoundError:
+            # Si no existe el archivo, no se puede realizar la eliminación.
+            print("\nNo se encontró el archivo de usuarios:", self.ruta_usuarios)
+            return
+
+        if f is not None:
+            f.close()
+
+        # Obtenemos la lista de usuarios del JSON.
+        lista = datos.get("usuarios", [])
+        if not isinstance(lista, list):
+            print("\nLa estructura del archivo de usuarios no es válida.")
+            return
+
+        # Buscamos el índice del usuario cuyo id coincida con el indicado.
+        # Detenemos la búsqueda cuando 'indice_encontrado' deja de ser -1.
+        indice_encontrado = -1
+        i = 0
+        total = len(lista)
+        id_busqueda = id_usuario
+
+        # Si id_usuario viene como texto, intentamos convertirlo a entero.
+        if isinstance(id_busqueda, str) and id_busqueda.isdigit():
+            id_busqueda = int(id_busqueda)
+
+        while i < total and indice_encontrado == -1:
+            entrada = lista[i]
+            valor_id = entrada.get("id_usuario")
+
+            # Se compara el valor del id tal cual (normalmente entero).
+            if valor_id == id_busqueda:
+                indice_encontrado = i
+
+            i = i + 1
+
+        # Si no se encontró ningún usuario con ese ID, se informa y se sale.
+        if indice_encontrado == -1:
+            print("\nNo existe ningún usuario con el ID:", id_busqueda)
+            return
+
+        # Mostramos al administrador qué usuario se va a eliminar.
+        usuario_json = lista[indice_encontrado]
+        nombre_login = usuario_json.get("nombre_usuario") or usuario_json.get("nombre")
+        rol = usuario_json.get("rol")
+
+        print("\nSe va a eliminar el siguiente usuario del archivo JSON:")
+        print("ID:", usuario_json.get("id_usuario"), "| Usuario:", nombre_login, "| Rol:", rol)
+
+        # Pedimos confirmación explícita al administrador.
+        print("Esta acción es permanente. Se eliminará del JSON.")
+        confirmacion = input("¿Confirmar eliminación? (S/N): ").strip().upper()
+
+        if confirmacion != "S":
+            # Si el administrador no confirma con 'S', se cancela la operación.
+            print("\nOperación cancelada por el administrador.")
+            return
+
+        # Creamos una nueva lista de usuarios sin el elemento a eliminar.
+        nueva_lista = []
+        j = 0
+        while j < total:
+            if j != indice_encontrado:
+                nueva_lista.append(lista[j])
+            j = j + 1
+
+        # Reemplazamos la lista antigua por la nueva en la estructura de datos.
+        datos["usuarios"] = nueva_lista
+
+        # Escribimos el JSON actualizado en el archivo.
+        f2 = None
+        try:
+            f2 = open(self.ruta_usuarios, "w", encoding="utf-8")
+            texto = json.dumps(datos, ensure_ascii=False, indent=4)
+            f2.write(texto)
+        except Exception as e:
+            print("\nError al escribir el archivo de usuarios:", str(e))
+            return
+
+        if f2 is not None:
+            f2.close()
+
+        # Recargamos los datos en memoria para que self.usuarios se actualice.
+        self.cargar_datos()
+
+        print("\nUsuario eliminado correctamente del sistema.")
