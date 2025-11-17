@@ -292,3 +292,179 @@ class RepositorioCredenciales:
         self.cargar_datos()
 
         print("\nUsuario eliminado correctamente del sistema.")
+
+# =============================================================================
+# Funciones para trabajar con el JSON de salas y su estado de ocupación
+# Archivo: sensores_habitaciones.json
+# Estructura esperada:
+# {
+#   "habitaciones": {
+#       "id_habitacion": [1, 2, 3, ...],
+#       "estado": ["libre", "ocupado", ...]
+#   }
+# }
+# =============================================================================
+
+def visualizar_estado_sala(ruta_sensores="sensores_habitaciones.json"):
+    # Muestra por pantalla el estado de una sala a partir de su id_habitacion.
+
+    datos = None
+    f = None
+
+    try:
+        f = open(ruta_sensores, "r", encoding="utf-8")
+        datos = json.load(f)
+    except FileNotFoundError:
+        print("\nNo se encontró el archivo de sensores/habitaciones:", ruta_sensores)
+        if f is not None:
+            f.close()
+        return
+
+    if f is not None:
+        f.close()
+
+    # Se comprueba que la estructura del JSON sea la esperada.
+    habitaciones = datos.get("habitaciones")
+    if not isinstance(habitaciones, dict):
+        print("\nLa estructura del archivo de sensores no es válida.")
+        return
+
+    lista_ids = habitaciones.get("id_habitacion")
+    lista_estados = habitaciones.get("estado")
+
+    if not isinstance(lista_ids, list) or not isinstance(lista_estados, list):
+        print("\nLa estructura de habitaciones no contiene listas válidas.")
+        return
+
+    if len(lista_ids) != len(lista_estados):
+        print("\nLas listas de id_habitacion y estado no tienen la misma longitud.")
+        return
+
+    # Se pide el id de la habitación al usuario.
+    id_texto = input("\nIntroduce el id_habitacion: ").strip()
+    if not id_texto.isdigit():
+        print("El id_habitacion debe ser un número entero.")
+        return
+
+    id_habitacion = int(id_texto)
+
+    # Banderas para la búsqueda.
+    encontrado = False
+    estado_encontrado = None
+
+    # Búsqueda manual sin usar 'break'.
+    i = 0
+    total = len(lista_ids)
+    while i < total and not encontrado:
+        if lista_ids[i] == id_habitacion:
+            encontrado = True
+            estado_encontrado = lista_estados[i]
+        else:
+            i = i + 1
+
+    if encontrado:
+        print("El estado actual de la sala", id_habitacion, "es:", estado_encontrado)
+    else:
+        print("La habitación con id", id_habitacion, "no existe.")
+
+
+def cambiar_estado_ocupacion_sala(ruta_sensores="sensores_habitaciones.json"):
+    # Permite cambiar el estado de ocupación de una sala (libre/ocupado)
+    # pidiendo confirmación al usuario y guardando el cambio en el JSON.
+
+    datos = None
+    f = None
+
+    try:
+        f = open(ruta_sensores, "r", encoding="utf-8")
+        datos = json.load(f)
+    except FileNotFoundError:
+        print("\nNo se encontró el archivo de sensores/habitaciones:", ruta_sensores)
+        if f is not None:
+            f.close()
+        return
+
+    if f is not None:
+        f.close()
+
+    habitaciones = datos.get("habitaciones")
+    if not isinstance(habitaciones, dict):
+        print("\nLa estructura del archivo de sensores no es válida.")
+        return
+
+    lista_ids = habitaciones.get("id_habitacion")
+    lista_estados = habitaciones.get("estado")
+
+    if not isinstance(lista_ids, list) or not isinstance(lista_estados, list):
+        print("\nLa estructura de habitaciones no contiene listas válidas.")
+        return
+
+    if len(lista_ids) != len(lista_estados):
+        print("\nLas listas de id_habitacion y estado no tienen la misma longitud.")
+        return
+
+    # Petición del id de la habitación.
+    id_texto = input("\nIntroduce el id_habitacion: ").strip()
+    if not id_texto.isdigit():
+        print("El id_habitacion debe ser un número entero.")
+        return
+
+    id_habitacion = int(id_texto)
+
+    # Búsqueda del índice de la habitación.
+    indice_encontrado = -1
+    i = 0
+    total = len(lista_ids)
+    while i < total and indice_encontrado == -1:
+        if lista_ids[i] == id_habitacion:
+            indice_encontrado = i
+        else:
+            i = i + 1
+
+    if indice_encontrado == -1:
+        print("La habitación con id", id_habitacion, "no existe.")
+        return
+
+    # Estado actual y nuevo estado propuesto.
+    estado_actual = lista_estados[indice_encontrado]
+    print("El estado actual de la sala", id_habitacion, "es:", estado_actual)
+
+    if estado_actual == "ocupado":
+        nuevo_estado = "libre"
+    else:
+        nuevo_estado = "ocupado"
+
+    # Confirmación del usuario.
+    fin_pregunta = False
+    respuesta = None
+    while not fin_pregunta:
+        respuesta = input("¿Desea cambiar el estado a " + nuevo_estado + "? (Si/No): ").strip()
+        if respuesta == "Si" or respuesta == "No":
+            fin_pregunta = True
+        else:
+            print("La respuesta introducida es errónea, debe introducir Si o No.")
+
+    if respuesta == "No":
+        print("No se ha realizado ningún cambio.")
+        return
+
+    # Se actualiza el estado en la lista.
+    lista_estados[indice_encontrado] = nuevo_estado
+
+    # Se guarda el JSON actualizado en disco.
+    f2 = None
+    try:
+        f2 = open(ruta_sensores, "w", encoding="utf-8")
+        texto = json.dumps(datos, ensure_ascii=False, indent=4)
+        f2.write(texto)
+    except Exception as e:
+        print("\nError al escribir el archivo de sensores/habitaciones:", str(e))
+        if f2 is not None:
+            f2.close()
+        return
+
+    if f2 is not None:
+        f2.close()
+
+    print("Datos actualizados correctamente.")
+    print("El estado actual de la sala", id_habitacion, "es ahora:", nuevo_estado)

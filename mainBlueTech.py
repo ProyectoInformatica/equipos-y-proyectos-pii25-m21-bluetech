@@ -1,8 +1,12 @@
 # Se importan las clases necesarias desde el módulo de modelo.
 # RepositorioCredenciales: maneja la carga, verificación y eliminación de usuarios.
 # Rol: define los posibles roles de los usuarios (administrador y trabajador).
-from modeloBlueTech import RepositorioCredenciales, Rol
-
+from modeloBlueTech import (
+    RepositorioCredenciales,
+    Rol,
+    visualizar_estado_sala,
+    cambiar_estado_ocupacion_sala
+)
 
 # Muestra el menú principal del programa y devuelve la opción seleccionada.
 def mostrar_menu_principal():
@@ -122,19 +126,19 @@ def mostrar_menu_trabajador(usuario):
     while sesion_activa:
         print("\n=== MENÚ TRABAJADOR ===")
         print("Usuario autenticado:", usuario.nombre_usuario)
-        print("1. Consultar estado de salas (simulado)")
-        print("2. Ver parámetros ambientales (simulado)")
+        print("1. Visualizar estado de una sala")
+        print("2. Cambiar estado de ocupación de una sala")
         print("0. Cerrar sesión")
 
         eleccion = input("Selecciona una opción: ").strip()
 
-        # Opción 1: funcionalidad simulada de consulta de salas.
+        # Opción 1: visualizar el estado actual de una sala.
         if eleccion == "1":
-            print("\nConsultando estado de salas (demo).")
+            visualizar_estado_sala()
 
-        # Opción 2: funcionalidad simulada de parámetros ambientales.
+        # Opción 2: cambiar el estado de ocupación de una sala.
         elif eleccion == "2":
-            print("\nMostrando parámetros ambientales (demo).")
+            cambiar_estado_ocupacion_sala()
 
         # Opción 0: cerrar sesión del trabajador.
         elif eleccion == "0":
