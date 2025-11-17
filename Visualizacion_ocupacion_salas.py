@@ -20,9 +20,6 @@ if id_habitacion <= longitud and id_habitacion > 0:
             #Muestra el estado actual de la sala
             data = datos["habitaciones"]["estado"][i]
             print(f"El estado actual de la sala {id_habitacion} es: {data}")
-        else:
-            #Error al encontrar el id
-            print(f"La habitación con id {id_habitacion} no existe.")
 else:
     #Error al encontrar el id
     print(f"La habitación con id {id_habitacion} no existe.")
