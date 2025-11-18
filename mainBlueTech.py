@@ -5,7 +5,9 @@ from modeloBlueTech import (
     RepositorioCredenciales,
     Rol,
     visualizar_estado_sala,
-    cambiar_estado_ocupacion_sala
+    cambiar_estado_ocupacion_sala,
+    consultar_parametros_sanidad_interactivo,
+    cambiar_parametros_sanidad_interactivo
 )
 
 # Muestra el menú principal del programa y devuelve la opción seleccionada.
@@ -52,7 +54,8 @@ def mostrar_menu_admin(usuario, repo):
         print("Usuario autenticado:", usuario.nombre_usuario)
         print("1. Listar todos los usuarios")
         print("2. Buscar usuario por nombre de login")
-        print("3. Eliminar usuario por ID")
+        print("3. Agregar nuevo usuario")
+        print("4. Eliminar usuario por ID")
         print("0. Cerrar sesión")
 
         eleccion = input("Selecciona una opción: ").strip()
@@ -96,8 +99,39 @@ def mostrar_menu_admin(usuario, repo):
                     "| Rol:", encontrado.rol    
                 )
 
-        # Opción 3: eliminar un usuario por ID con confirmación.
+        # Opción 3: AGREGAR NUEVO TRABAJADOR.
         elif eleccion == "3":
+            print("\n" + "="*50)
+            print("     AGREGAR NUEVO TRABAJADOR")
+            print("="*50)
+
+            nombre = input("Nombre: ").strip()
+            apellidos = input("Apellidos: ").strip()
+            nombre_usuario = input("Nombre de usuario (login): ").strip()
+            contrasena = input("Contraseña: ").strip()
+
+            # Validaciones básicas
+            if not all([nombre, apellidos, nombre_usuario, contrasena]):
+                print("Todos los campos son obligatorios.")
+                continue
+
+            if any(u.nombre_usuario == nombre_usuario for u in repo.usuarios):
+                print(f"Error: El nombre de usuario '{nombre_usuario}' ya existe.")
+                continue
+
+            if len(contrasena) < 4:
+                print("La contraseña debe tener al menos 4 caracteres.")
+                continue
+
+            # Llamada a la función que ya tienes en el modelo
+            exito = repo.agregar_trabajador(nombre, apellidos, nombre_usuario, contrasena)
+            if exito:
+                print("Trabajador agregado exitosamente.")
+            else:
+                print("No se pudo agregar el trabajador.")
+
+        # Opción 4: eliminar un usuario por ID con confirmación.
+        elif eleccion == "4":
             id_texto = input("Introduce el ID del usuario a eliminar: ").strip()
             if id_texto.isdigit():
                 id_eliminar = int(id_texto)
@@ -128,26 +162,24 @@ def mostrar_menu_trabajador(usuario):
         print("Usuario autenticado:", usuario.nombre_usuario)
         print("1. Visualizar estado de una sala")
         print("2. Cambiar estado de ocupación de una sala")
+        print("3. Consultar parámetros de sanidad")
+        print("4. Cambiar parámetros de sanidad")
         print("0. Cerrar sesión")
 
         eleccion = input("Selecciona una opción: ").strip()
 
-        # Opción 1: visualizar el estado actual de una sala.
         if eleccion == "1":
             visualizar_estado_sala()
-
-        # Opción 2: cambiar el estado de ocupación de una sala.
         elif eleccion == "2":
             cambiar_estado_ocupacion_sala()
-
-        # Opción 0: cerrar sesión del trabajador.
+        elif eleccion == "3":
+            consultar_parametros_sanidad_interactivo()
+        elif eleccion == "4":
+            cambiar_parametros_sanidad_interactivo()
         elif eleccion == "0":
             sesion_activa = False
-
-        # Cualquier otra opción se considera inválida.
         else:
             print("\nOpción no válida. Intente de nuevo.")
-
 
 # Punto de entrada principal del programa.
 def main():
