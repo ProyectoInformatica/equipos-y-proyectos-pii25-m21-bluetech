@@ -1,7 +1,7 @@
 import json
 
 #Se realiza la lectura del json de habitaciones y sensores
-with open("sensores_habitaciones.json", "r") as archivo:
+with open("habitacion.json", "r") as archivo:
     datos = json.load(archivo)
 
 #Introduce el usuario el id_habitación
@@ -11,7 +11,7 @@ id_habitacion = int(id_habitacion)
 #Variable para la longitud del array de id_habitaciones del json
 longitud = len(datos["habitaciones"]["id_habitacion"])
 
-#verifica que el id sea mayor que 0 y este en el array
+#verifica que el id sea mayor que 0 y este en el array ya que van en orden
 if id_habitacion <= longitud and id_habitacion > 0:
     #recorre el array de id_habitacion
     for i in range (longitud):
@@ -42,7 +42,7 @@ if id_habitacion <= longitud and id_habitacion > 0:
                 else:
                     print("La respuesta introducida es erronea, debe introducir Si o No.")
             #Sobreescribe el archivo json de habitaciones y sensores con las modificaciones correspondientes
-            with open("sensores_habitaciones.json", "w") as archivo:
+            with open("habitacion.json", "w") as archivo:
                 json.dump(datos, archivo, indent=4)
             #Confirma que los datos se han actualizado y le vueleve a mostrar el resultado actualizado del estado
             print("Datos actualizados correctamente")

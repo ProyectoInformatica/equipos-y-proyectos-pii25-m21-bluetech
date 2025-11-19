@@ -1,7 +1,7 @@
 import json
 
 #Se realiza la lectura del json de habitaciones y sensores
-with open("sensores_habitaciones.json", "r") as archivo:
+with open("habitacion.json", "r") as archivo:
     datos = json.load(archivo)
 
 #Solicita al usuario el id_habitación
