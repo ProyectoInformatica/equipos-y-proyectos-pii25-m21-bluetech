@@ -1,0 +1,16 @@
+{
+    "sensores_temp": {
+        "id_sensor": [
+            11,
+            21,
+            31,
+            41
+        ],
+        "temperatura": [
+            28,
+            32,
+            32,
+            31
+        ]
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "habitaciones": {
+        "id_habitacion": [
+            1,
+            2,
+            3,
+            4
+        ],
+        "estado": [
+            "libre",
+            "ocupado",
+            "libre",
+            "libre"
+        ]
+    }
+}
