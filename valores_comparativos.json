@@ -1,0 +1,12 @@
+{
+    "s_temperatura": 0,
+    "s_humedad": 0,
+    "s_calidad_aire": {
+        "PM2.5": 0,
+        "PM10": 0,
+        "CO": 0,
+        "NO2": 0,
+        "CO2": 0,
+        "TVOC": 0
+    }
+}
