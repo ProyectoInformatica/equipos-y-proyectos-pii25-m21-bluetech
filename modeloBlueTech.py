@@ -370,7 +370,7 @@ class RepositorioCredenciales:
 
 # =============================================================================
 # Funciones para trabajar con el JSON de salas y su estado de ocupación
-# Archivo: sensores_habitaciones.json
+# Archivo: habitacion.json
 # Estructura esperada:
 # {
 #   "habitaciones": {
@@ -379,181 +379,87 @@ class RepositorioCredenciales:
 #   }
 # }
 # =============================================================================
-def visualizar_estado_sala(ruta_sensores="sensores_habitaciones.json"):
+def visualizar_estado_sala(ruta_sensores="habitacion.json"):
     # Muestra por pantalla el estado de una sala a partir de su id_habitacion.
+    #Se realiza la lectura del json de habitaciones y sensores
+    with open("habitacion.json", "r") as archivo:
+        datos = json.load(archivo)
 
-    datos = None
-    f = None
+    #Solicita al usuario el id_habitación
+    id_habitacion = input("Introduce el id_habitacion: ")
+    id_habitacion = int(id_habitacion)
 
-    # Se realiza la lectura del json de habitaciones y sensores.
-    try:
-        f = open(ruta_sensores, "r", encoding="utf-8")
-        datos = json.load(f)
-    except FileNotFoundError:
-        print("\nNo se encontró el archivo de sensores/habitaciones:", ruta_sensores)
-        if f is not None:
-            f.close()
-        return
+    #Variable para la longitud del array de id_habitaciones del json
+    longitud = len(datos["habitaciones"]["id_habitacion"])
 
-    if f is not None:
-        f.close()
-
-    # Se comprueba que exista la clave "habitaciones" con la estructura esperada.
-    habitaciones = datos.get("habitaciones")
-    if not isinstance(habitaciones, dict):
-        print("\nLa estructura del archivo de sensores no es válida.")
-        return
-
-    lista_ids = habitaciones.get("id_habitacion")
-    lista_estados = habitaciones.get("estado")
-
-    if not isinstance(lista_ids, list) or not isinstance(lista_estados, list):
-        print("\nLa estructura de habitaciones no contiene listas válidas.")
-        return
-
-    longitud = len(lista_ids)
-
-    # Solicita al usuario el id_habitacion.
-    id_texto = input("Introduce el id_habitacion: ").strip()
-    if not id_texto.isdigit():
-        print("El id_habitacion debe ser un número entero.")
-        return
-
-    id_habitacion = int(id_texto)
-
-    # Verifica que el id sea mayor que 0 y esté dentro del rango (asumiendo ids secuenciales).
+    #verifica que el id sea mayor que 0 y este en el array ya que van en orden
     if id_habitacion <= longitud and id_habitacion > 0:
-        # Recorre el array de id_habitacion para encontrar el índice correcto.
-        i = 0
-        encontrado = False
-        estado_encontrado = None
-
-        while i < longitud and not encontrado:
-            if lista_ids[i] == id_habitacion:
-                encontrado = True
-                estado_encontrado = lista_estados[i]
-            else:
-                i = i + 1
-
-        if encontrado:
-            # Muestra el estado actual de la sala.
-            print("El estado actual de la sala", id_habitacion, "es:", estado_encontrado)
-        else:
-            # Caso raro: el id está dentro del rango pero no aparece en la lista.
-            print("La habitación con id", id_habitacion, "no existe.")
+        #recorre el array de id_habitacion
+        for i in range (longitud):
+            #verifica que uno de ellos coincida
+            if datos["habitaciones"]["id_habitacion"][i] == id_habitacion:
+                #Muestra el estado actual de la sala
+                data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {data}")
     else:
-        # Error al encontrar el id (fuera de rango).
-        print("La habitación con id", id_habitacion, "no existe.")
+        #Error al encontrar el id
+        print(f"La habitación con id {id_habitacion} no existe.")
 
-def cambiar_estado_ocupacion_sala(ruta_sensores="sensores_habitaciones.json"):
+def cambiar_estado_ocupacion_sala(ruta_sensores="habitacion.json"):
     # Permite cambiar el estado de ocupación de una sala (libre/ocupado)
     # pidiendo confirmación al usuario y guardando el cambio en el JSON.
 
-    datos = None
-    f = None
+    #Se realiza la lectura del json de habitaciones y sensores
+    with open("habitacion.json", "r") as archivo:
+        datos = json.load(archivo)
 
-    # Se realiza la lectura del json de habitaciones y sensores.
-    try:
-        f = open(ruta_sensores, "r", encoding="utf-8")
-        datos = json.load(f)
-    except FileNotFoundError:
-        print("\nNo se encontró el archivo de sensores/habitaciones:", ruta_sensores)
-        if f is not None:
-            f.close()
-        return
+    #Introduce el usuario el id_habitación
+    id_habitacion = input("Introduce el id_habitacion: ")
+    id_habitacion = int(id_habitacion)
 
-    if f is not None:
-        f.close()
+    #Variable para la longitud del array de id_habitaciones del json
+    longitud = len(datos["habitaciones"]["id_habitacion"])
 
-    habitaciones = datos.get("habitaciones")
-    if not isinstance(habitaciones, dict):
-        print("\nLa estructura del archivo de sensores no es válida.")
-        return
-
-    lista_ids = habitaciones.get("id_habitacion")
-    lista_estados = habitaciones.get("estado")
-
-    if not isinstance(lista_ids, list) or not isinstance(lista_estados, list):
-        print("\nLa estructura de habitaciones no contiene listas válidas.")
-        return
-
-    longitud = len(lista_ids)
-
-    # Introduce el usuario el id_habitacion.
-    id_texto = input("Introduce el id_habitacion: ").strip()
-    if not id_texto.isdigit():
-        print("El id_habitacion debe ser un número entero.")
-        return
-
-    id_habitacion = int(id_texto)
-
-    # Verifica que el id sea mayor que 0 y esté en el array (asumiendo orden secuencial).
+    #verifica que el id sea mayor que 0 y este en el array ya que van en orden
     if id_habitacion <= longitud and id_habitacion > 0:
-        # Recorre el array de id_habitacion para encontrar el índice.
-        i = 0
-        indice_encontrado = -1
-
-        while i < longitud and indice_encontrado == -1:
-            if lista_ids[i] == id_habitacion:
-                indice_encontrado = i
-            else:
-                i = i + 1
-
-        if indice_encontrado == -1:
-            # Caso raro: está dentro del rango pero no lo encuentra.
-            print("La habitación con id", id_habitacion, "no existe.")
-            return
-
-        # Muestra el estado actual de la sala.
-        data = lista_estados[indice_encontrado]
-        print("El estado actual de la sala", id_habitacion, "es:", data)
-
-        # En caso de estar ocupado el nuevo dato será libre y a la inversa en caso contrario.
-        if data == "ocupado":
-            nuevo_dato = "libre"
-        else:
-            nuevo_dato = "ocupado"
-
-        # Se ejecuta siempre que no se cumpla la respuesta del usuario con lo solicitado.
-        fin = False
-        while not fin:
-            # Almacena en una variable la respuesta del usuario a la pregunta solicitada.
-            respuesta = input("¿Desea cambiar el estado a " + nuevo_dato + "? (Si/No): ").strip()
-            respuesta = str(respuesta)
-
-            # En caso de que la respuesta sea "Si", cambia el estado; en caso contrario lo deja igual.
-            if respuesta == "Si":
-                lista_estados[indice_encontrado] = nuevo_dato
-                fin = True
-            elif respuesta == "No":
-                lista_estados[indice_encontrado] = data
-                fin = True
-            else:
-                # En caso de respuesta errónea salta error y vuelve a solicitar una respuesta.
-                print("La respuesta introducida es errónea, debe introducir Si o No.")
-
-        # Sobrescribe el archivo json de habitaciones y sensores con las modificaciones correspondientes.
-        f2 = None
-        try:
-            f2 = open(ruta_sensores, "w", encoding="utf-8")
-            texto = json.dumps(datos, ensure_ascii=False, indent=4)
-            f2.write(texto)
-        except Exception as e:
-            print("\nError al escribir el archivo de sensores/habitaciones:", str(e))
-            if f2 is not None:
-                f2.close()
-            return
-
-        if f2 is not None:
-            f2.close()
-
-        # Confirma que los datos se han actualizado y vuelve a mostrar el estado actualizado.
-        print("Datos actualizados correctamente")
-        nuevo_data = lista_estados[indice_encontrado]
-        print("El estado actual de la sala", id_habitacion, "es:", nuevo_data)
+        #recorre el array de id_habitacion
+        for i in range (longitud):
+            #verifica que uno de ellos coincida
+            if datos["habitaciones"]["id_habitacion"][i] == id_habitacion:
+                #Muestra el estado actual de la sala
+                data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {data}")
+                #En caso de estar ocupado el nuevo dato sera libre y a la inversa en caso contrario
+                if data == "ocupado":
+                    nuevo_dato = "libre"
+                else:
+                    nuevo_dato = "ocupado"
+                fin = False
+                #Se ejecuta siempre que no se cumpla la respuesta del usuario con lo solicitado
+                while not fin:
+                    #Almacena en una variable la respuesta del usuario a la pregunta solicitada
+                    respuesta = input(f"¿Desea cambiar el estado a {nuevo_dato}? (Si/No)")
+                    respuesta = str(respuesta)
+                    #En caso de que la respuesta sea Si cambia el estado en caso contrario lo deja igual
+                    if respuesta == "Si":
+                        datos["habitaciones"]["estado"][i] = nuevo_dato
+                        fin = True
+                    elif respuesta == "No":
+                        datos["habitaciones"]["estado"][i] = data
+                        fin = True
+                    #En caso de respuesta erronea salta error y vuelve a solicitar una respuesta
+                    else:
+                        print("La respuesta introducida es erronea, debe introducir Si o No.")
+                #Sobreescribe el archivo json de habitaciones y sensores con las modificaciones correspondientes
+                with open("habitacion.json", "w") as archivo:
+                    json.dump(datos, archivo, indent=4)
+                #Confirma que los datos se han actualizado y le vueleve a mostrar el resultado actualizado del estado
+                print("Datos actualizados correctamente")
+                nuevo_data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {nuevo_data}")
     else:
-        # Error al encontrar el id.
-        print("La habitación con id", id_habitacion, "no existe.")
+        #Error al encontrar el id
+        print(f"La habitación con id {id_habitacion} no existe.")
 
 # =============================================================================
 # Funciones para consultar y modificar parámetros de sanidad
