@@ -1,5 +1,6 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     "usuarios": [
         {
             "id_usuario": 1,
@@ -132,6 +133,8 @@
     ]
 }
 =======
+=======
+>>>>>>> parent of 64d528f (Archivo usuarios.json (solución errores al mergear))
   "usuarios": [
     {
       "id_usuario": 1,
@@ -256,4 +259,7 @@
     }
   ]
 }
+<<<<<<< HEAD
 >>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
+=======
+>>>>>>> parent of 64d528f (Archivo usuarios.json (solución errores al mergear))
