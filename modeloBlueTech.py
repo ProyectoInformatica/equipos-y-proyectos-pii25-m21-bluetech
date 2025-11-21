@@ -11,13 +11,10 @@
 
 import json      # Se importa el módulo "json" para leer y escribir archivos en formato JSON.
 import hashlib   # Se importa hashlib para poder calcular el hash (SHA-256) de las contraseñas.
-<<<<<<< HEAD
-=======
 import os   # Para comprobar la existencia del JSON de parámetros de sanidad
 
 # Ruta del archivo con los valores comparativos de sanidad
 RUTA_VALORES_COMPARATIVOS = "valores_comparativos.json"
->>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
 
 # Clase que define los tipos de roles posibles para un usuario.
 class Rol:
@@ -298,16 +295,9 @@ class RepositorioCredenciales:
         self.cargar_datos()
 
         print("\nUsuario eliminado correctamente del sistema.")
-<<<<<<< HEAD
-    
-    def agregar_trabajador(self, nombre, apellidos, nombre_usuario, contrasena):
-        
-
-=======
 
     def agregar_trabajador(self, nombre, apellidos, nombre_usuario, contrasena):
         
->>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         # --- 1. Generar ID único automático ---
         max_id = 0
         i = 0
@@ -379,9 +369,6 @@ class RepositorioCredenciales:
 
         # --- 8. Recargar datos en memoria ---
         self.cargar_datos()
-<<<<<<< HEAD
-        return True
-=======
         return True
 
 # =============================================================================
@@ -764,4 +751,3 @@ def cambiar_parametros_sanidad_interactivo():
         print("\nParámetro actualizado correctamente.")
     else:
         print("\nNo se pudo guardar la actualización en el archivo.")
->>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
