@@ -1,15 +1,4 @@
 {
-<<<<<<< HEAD
-    "s_temperatura": 0,
-    "s_humedad": 0,
-    "s_calidad_aire": {
-        "PM2.5": 0,
-        "PM10": 0,
-        "CO": 0,
-        "NO2": 0,
-        "CO2": 0,
-        "TVOC": 0
-=======
     "temperatura": {
         "min": 22.0,
         "max": 28,
@@ -53,6 +42,5 @@
             "unidad": "ppb",
             "descripcion": "Compuestos orgánicos volátiles totales."
         }
->>>>>>> sprint2/Gabriel_Rodriguez_Implementacion_Funcion_Cambios_Parametros_Sanidad
     }
 }
