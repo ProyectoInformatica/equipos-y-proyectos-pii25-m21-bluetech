@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "s_temperatura": 0,
     "s_humedad": 0,
     "s_calidad_aire": {
@@ -8,5 +9,50 @@
         "NO2": 0,
         "CO2": 0,
         "TVOC": 0
+=======
+    "temperatura": {
+        "min": 22.0,
+        "max": 28,
+        "unidad": "°C",
+        "descripcion": "Temperatura recomendada para espacios interiores."
+    },
+    "humedad": {
+        "min": 40,
+        "max": 34.0,
+        "unidad": "%",
+        "descripcion": "Rango ideal de humedad relativa."
+    },
+    "calidad_aire": {
+        "PM2.5": {
+            "max": 20,
+            "unidad": "µg/m³",
+            "descripcion": "Partículas finas según estándares OMS (promedio 24h)."
+        },
+        "PM10": {
+            "max": 45,
+            "unidad": "µg/m³",
+            "descripcion": "Partículas inhalables (promedio 24h)."
+        },
+        "CO": {
+            "max": 10,
+            "unidad": "mg/m³",
+            "descripcion": "Monóxido de carbono límite 8 horas."
+        },
+        "NO2": {
+            "max": 25,
+            "unidad": "µg/m³",
+            "descripcion": "Límite de dióxido de nitrógeno en 24 horas."
+        },
+        "CO2": {
+            "max": 1000,
+            "unidad": "ppm",
+            "descripcion": "Nivel de CO₂ recomendado para interiores."
+        },
+        "TVOC": {
+            "max": 500,
+            "unidad": "ppb",
+            "descripcion": "Compuestos orgánicos volátiles totales."
+        }
+>>>>>>> sprint2/Gabriel_Rodriguez_Implementacion_Funcion_Cambios_Parametros_Sanidad
     }
 }
