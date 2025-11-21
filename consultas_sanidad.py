@@ -3,7 +3,7 @@
 import json
 
 
-def cargar_valores_recomendados(ruta="valores_recomendados.json"):
+def cargar_valores_recomendados(ruta="valores_comparativos.json"):
     """Carga el archivo JSON con los valores recomendados."""
     try:
         with open(ruta, "r", encoding="utf-8") as f:

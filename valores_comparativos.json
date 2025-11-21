@@ -1,19 +1,19 @@
 {
     "temperatura": {
-        "min": 20,
-        "max": 26,
+        "min": 22.0,
+        "max": 28,
         "unidad": "°C",
         "descripcion": "Temperatura recomendada para espacios interiores."
     },
     "humedad": {
         "min": 40,
-        "max": 60,
+        "max": 34.0,
         "unidad": "%",
         "descripcion": "Rango ideal de humedad relativa."
     },
     "calidad_aire": {
         "PM2.5": {
-            "max": 15,
+            "max": 20,
             "unidad": "µg/m³",
             "descripcion": "Partículas finas según estándares OMS (promedio 24h)."
         },

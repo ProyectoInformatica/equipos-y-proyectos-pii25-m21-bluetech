@@ -1,7 +1,7 @@
 import json
 import os
 
-RUTA_JSON = "valores_recomendados.json"
+RUTA_JSON = "valores_comparativos.json"
 
 
 # -----------------------------
@@ -26,61 +26,108 @@ def guardar_valores_recomendados(data):
 
 
 # -----------------------------
-# Actualizar un parámetro de sanidad
+# Actualizar parámetros con interacción del usuario
 # -----------------------------
-def actualizar_parametro_sanidad(categoria, parametro, clave, nuevo_valor):
-    """
-    Actualiza un valor dentro del archivo de sanidad.
-    
-    categoria: 'temperatura', 'humedad', 'calidad_aire'
-    parametro:
-        - Para 'temperatura' o 'humedad': usar None
-        - Para 'calidad_aire': 'PM2.5', 'CO', etc.
-    clave: 'min', 'max', 'unidad', 'descripcion'
-    nuevo_valor: valor nuevo a aplicar
-    """
-    
+def menu_actualizar_parametros():
     data = cargar_valores_recomendados()
 
-    if categoria not in data:
-        raise KeyError(f"Categoría '{categoria}' no existe en el JSON.")
+    print("\n=== CATEGORÍAS DISPONIBLES ===")
+    for i, categoria in enumerate(data.keys(), start=1):
+        print(f"{i}. {categoria}")
 
-    # Temperatura u humedad
+    opcion_categoria = input("\nSeleccione una categoría (número): ").strip()
+
+    # Convertir a nombre real
+    categorias_lista = list(data.keys())
+    try:
+        categoria = categorias_lista[int(opcion_categoria) - 1]
+    except:
+        print("Opción inválida.")
+        return
+
+    # Si es temperatura u humedad
     if categoria in ("temperatura", "humedad"):
-        if parametro is not None:
-            raise ValueError("Para temperatura/humedad NO se usa parámetro secundario.")
+
+        print(f"\nValores actuales de {categoria}:")
+        for k, v in data[categoria].items():
+            print(f" - {k}: {v}")
+
+        clave = input("\nIndique qué clave modificar (min, max, unidad, descripcion): ").strip()
+
         if clave not in data[categoria]:
-            raise KeyError(f"La clave '{clave}' no existe en {categoria}.")
+            print("Clave inválida.")
+            return
+
+        nuevo_valor = input("Nuevo valor: ").strip()
+
+        # Conversión automática a número si procede
+        if nuevo_valor.isnumeric():
+            nuevo_valor = float(nuevo_valor)
+
         data[categoria][clave] = nuevo_valor
 
-    # Calidad del aire
+    # Si es calidad del aire
     elif categoria == "calidad_aire":
-        if parametro not in data["calidad_aire"]:
-            raise KeyError(f"El parámetro '{parametro}' no existe en calidad_aire.")
-        if clave not in data["calidad_aire"][parametro]:
-            raise KeyError(f"La clave '{clave}' no existe en {parametro}.")
-        data["calidad_aire"][parametro][clave] = nuevo_valor
 
-    # Guardar cambios
+        print("\n=== Parámetros de calidad del aire ===")
+        for i, param in enumerate(data[categoria].keys(), start=1):
+            print(f"{i}. {param}")
+
+        opcion_param = input("\nSeleccione un parámetro (número): ").strip()
+
+        parametros_lista = list(data[categoria].keys())
+        try:
+            parametro = parametros_lista[int(opcion_param) - 1]
+        except:
+            print("Opción inválida.")
+            return
+
+        print(f"\nValores actuales de {parametro}:")
+        for k, v in data[categoria][parametro].items():
+            print(f" - {k}: {v}")
+
+        clave = input("\nIndique qué clave modificar (min, max, unidad, descripcion): ").strip()
+
+        if clave not in data[categoria][parametro]:
+            print("Clave inválida.")
+            return
+
+        nuevo_valor = input("Nuevo valor: ").strip()
+
+        if nuevo_valor.isnumeric():
+            nuevo_valor = float(nuevo_valor)
+
+        data[categoria][parametro][clave] = nuevo_valor
+
     guardar_valores_recomendados(data)
-    return True
-
+    print("\n✔ Parámetro actualizado correctamente.")
 
 
 # -----------------------------
-# PRUEBAS DE FUNCIONAMIENTO
+# PROGRAMA PRINCIPAL
 # -----------------------------
 if __name__ == "__main__":
-    print("\n=== CARGA DE VALORES ===")
-    valores = cargar_valores_recomendados()
-    print(json.dumps(valores, indent=4, ensure_ascii=False))
 
-    print("\n=== PRUEBA 1: Cambiar temperatura máxima a 28 °C ===")
-    actualizar_parametro_sanidad("temperatura", None, "max", 28)
-    
-    print("\n=== PRUEBA 2: Cambiar PM2.5 máximo a 20 µg/m³ ===")
-    actualizar_parametro_sanidad("calidad_aire", "PM2.5", "max", 20)
-    
-    print("\n=== RESULTADO FINAL ===")
-    valores_actualizados = cargar_valores_recomendados()
-    print(json.dumps(valores_actualizados, indent=4, ensure_ascii=False))
+    while True:
+        print("\n==============================")
+        print("      CONFIGURAR SANIDAD      ")
+        print("==============================")
+        print("1. Ver valores actuales")
+        print("2. Modificar valores")
+        print("3. Salir")
+
+        opcion = input("\nSeleccione una opción: ").strip()
+
+        if opcion == "1":
+            valores = cargar_valores_recomendados()
+            print(json.dumps(valores, indent=4, ensure_ascii=False))
+
+        elif opcion == "2":
+            menu_actualizar_parametros()
+
+        elif opcion == "3":
+            print("Programa finalizado.")
+            break
+
+        else:
+            print("Opción inválida. Intente nuevamente.")
