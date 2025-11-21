@@ -1,6 +1,7 @@
 # Se importan las clases necesarias desde el módulo de modelo.
 # RepositorioCredenciales: maneja la carga, verificación y eliminación de usuarios.
 # Rol: define los posibles roles de los usuarios (administrador y trabajador).
+<<<<<<< HEAD
 from modeloBlueTech import RepositorioCredenciales, Rol,os
 
 
@@ -13,6 +14,20 @@ def mostrar_menu_principal():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     print("Carpeta de trabajo corregida →", os.getcwd())
 
+=======
+from modeloBlueTech import (
+    RepositorioCredenciales,
+    Rol,
+    visualizar_estado_sala,
+    cambiar_estado_ocupacion_sala,
+    consultar_parametros_sanidad_interactivo,
+    cambiar_parametros_sanidad_interactivo
+)
+
+# Muestra el menú principal del programa y devuelve la opción seleccionada.
+def mostrar_menu_principal():
+    # Muestra las opciones principales de la aplicación.
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
     print("\n=== MENÚ PRINCIPAL ===")
     print("1. Iniciar sesión")
     print("2. Salir")
@@ -54,7 +69,11 @@ def mostrar_menu_admin(usuario, repo):
         print("Usuario autenticado:", usuario.nombre_usuario)
         print("1. Listar todos los usuarios")
         print("2. Buscar usuario por nombre de login")
+<<<<<<< HEAD
         print("3. Agregar usuario")
+=======
+        print("3. Agregar nuevo usuario")
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         print("4. Eliminar usuario por ID")
         print("0. Cerrar sesión")
 
@@ -99,7 +118,10 @@ def mostrar_menu_admin(usuario, repo):
                     "| Rol:", encontrado.rol    
                 )
 
+<<<<<<< HEAD
         
+=======
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         # Opción 3: AGREGAR NUEVO TRABAJADOR.
         elif eleccion == "3":
             print("\n" + "="*50)
@@ -141,7 +163,10 @@ def mostrar_menu_admin(usuario, repo):
             else:
                 print("El ID debe ser un número entero.")
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         # Opción 0: fin de sesión.
         elif eleccion == "0":
             sesion_activa = False
@@ -162,12 +187,20 @@ def mostrar_menu_trabajador(usuario):
     while sesion_activa:
         print("\n=== MENÚ TRABAJADOR ===")
         print("Usuario autenticado:", usuario.nombre_usuario)
+<<<<<<< HEAD
         print("1. Consultar estado de salas (simulado)")
         print("2. Ver parámetros ambientales (simulado)")
+=======
+        print("1. Visualizar estado de una sala")
+        print("2. Cambiar estado de ocupación de una sala")
+        print("3. Consultar parámetros de sanidad")
+        print("4. Cambiar parámetros de sanidad")
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         print("0. Cerrar sesión")
 
         eleccion = input("Selecciona una opción: ").strip()
 
+<<<<<<< HEAD
         # Opción 1: funcionalidad simulada de consulta de salas.
         if eleccion == "1":
             print("\nConsultando estado de salas (demo).")
@@ -185,6 +218,21 @@ def mostrar_menu_trabajador(usuario):
             print("\nOpción no válida. Intente de nuevo.")
 
 
+=======
+        if eleccion == "1":
+            visualizar_estado_sala()
+        elif eleccion == "2":
+            cambiar_estado_ocupacion_sala()
+        elif eleccion == "3":
+            consultar_parametros_sanidad_interactivo()
+        elif eleccion == "4":
+            cambiar_parametros_sanidad_interactivo()
+        elif eleccion == "0":
+            sesion_activa = False
+        else:
+            print("\nOpción no válida. Intente de nuevo.")
+
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
 # Punto de entrada principal del programa.
 def main():
     # Mensaje de bienvenida al sistema.
@@ -196,7 +244,11 @@ def main():
     # que contiene todos los usuarios (administradores y trabajadores).
     # Si en tu modelo el constructor de RepositorioCredenciales solo recibe ruta_usuarios,
     # esta llamada es compatible porque se usa el parámetro con nombre.
+<<<<<<< HEAD
     repo = RepositorioCredenciales()
+=======
+    repo = RepositorioCredenciales(ruta_usuarios="usuarios.json")
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
 
     # Bandera que controla el ciclo principal del programa.
     ejecutando = True

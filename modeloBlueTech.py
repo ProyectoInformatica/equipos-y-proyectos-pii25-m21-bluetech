@@ -11,6 +11,13 @@
 
 import json      # Se importa el módulo "json" para leer y escribir archivos en formato JSON.
 import hashlib   # Se importa hashlib para poder calcular el hash (SHA-256) de las contraseñas.
+<<<<<<< HEAD
+=======
+import os   # Para comprobar la existencia del JSON de parámetros de sanidad
+
+# Ruta del archivo con los valores comparativos de sanidad
+RUTA_VALORES_COMPARATIVOS = "valores_comparativos.json"
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
 
 # Clase que define los tipos de roles posibles para un usuario.
 class Rol:
@@ -291,10 +298,16 @@ class RepositorioCredenciales:
         self.cargar_datos()
 
         print("\nUsuario eliminado correctamente del sistema.")
+<<<<<<< HEAD
     
     def agregar_trabajador(self, nombre, apellidos, nombre_usuario, contrasena):
         
 
+=======
+
+    def agregar_trabajador(self, nombre, apellidos, nombre_usuario, contrasena):
+        
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
         # --- 1. Generar ID único automático ---
         max_id = 0
         i = 0
@@ -366,4 +379,389 @@ class RepositorioCredenciales:
 
         # --- 8. Recargar datos en memoria ---
         self.cargar_datos()
+<<<<<<< HEAD
         return True
+=======
+        return True
+
+# =============================================================================
+# Funciones para trabajar con el JSON de salas y su estado de ocupación
+# Archivo: habitacion.json
+# Estructura esperada:
+# {
+#   "habitaciones": {
+#       "id_habitacion": [1, 2, 3, ...],
+#       "estado": ["libre", "ocupado", ...]
+#   }
+# }
+# =============================================================================
+def visualizar_estado_sala(ruta_sensores="habitacion.json"):
+    # Muestra por pantalla el estado de una sala a partir de su id_habitacion.
+    #Se realiza la lectura del json de habitaciones y sensores
+    with open("habitacion.json", "r") as archivo:
+        datos = json.load(archivo)
+
+    #Solicita al usuario el id_habitación
+    id_habitacion = input("Introduce el id_habitacion: ")
+    id_habitacion = int(id_habitacion)
+
+    #Variable para la longitud del array de id_habitaciones del json
+    longitud = len(datos["habitaciones"]["id_habitacion"])
+
+    #verifica que el id sea mayor que 0 y este en el array ya que van en orden
+    if id_habitacion <= longitud and id_habitacion > 0:
+        #recorre el array de id_habitacion
+        for i in range (longitud):
+            #verifica que uno de ellos coincida
+            if datos["habitaciones"]["id_habitacion"][i] == id_habitacion:
+                #Muestra el estado actual de la sala
+                data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {data}")
+    else:
+        #Error al encontrar el id
+        print(f"La habitación con id {id_habitacion} no existe.")
+
+def cambiar_estado_ocupacion_sala(ruta_sensores="habitacion.json"):
+    # Permite cambiar el estado de ocupación de una sala (libre/ocupado)
+    # pidiendo confirmación al usuario y guardando el cambio en el JSON.
+
+    #Se realiza la lectura del json de habitaciones y sensores
+    with open("habitacion.json", "r") as archivo:
+        datos = json.load(archivo)
+
+    #Introduce el usuario el id_habitación
+    id_habitacion = input("Introduce el id_habitacion: ")
+    id_habitacion = int(id_habitacion)
+
+    #Variable para la longitud del array de id_habitaciones del json
+    longitud = len(datos["habitaciones"]["id_habitacion"])
+
+    #verifica que el id sea mayor que 0 y este en el array ya que van en orden
+    if id_habitacion <= longitud and id_habitacion > 0:
+        #recorre el array de id_habitacion
+        for i in range (longitud):
+            #verifica que uno de ellos coincida
+            if datos["habitaciones"]["id_habitacion"][i] == id_habitacion:
+                #Muestra el estado actual de la sala
+                data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {data}")
+                #En caso de estar ocupado el nuevo dato sera libre y a la inversa en caso contrario
+                if data == "ocupado":
+                    nuevo_dato = "libre"
+                else:
+                    nuevo_dato = "ocupado"
+                fin = False
+                #Se ejecuta siempre que no se cumpla la respuesta del usuario con lo solicitado
+                while not fin:
+                    #Almacena en una variable la respuesta del usuario a la pregunta solicitada
+                    respuesta = input(f"¿Desea cambiar el estado a {nuevo_dato}? (Si/No)")
+                    respuesta = str(respuesta)
+                    #En caso de que la respuesta sea Si cambia el estado en caso contrario lo deja igual
+                    if respuesta == "Si":
+                        datos["habitaciones"]["estado"][i] = nuevo_dato
+                        fin = True
+                    elif respuesta == "No":
+                        datos["habitaciones"]["estado"][i] = data
+                        fin = True
+                    #En caso de respuesta erronea salta error y vuelve a solicitar una respuesta
+                    else:
+                        print("La respuesta introducida es erronea, debe introducir Si o No.")
+                #Sobreescribe el archivo json de habitaciones y sensores con las modificaciones correspondientes
+                with open("habitacion.json", "w") as archivo:
+                    json.dump(datos, archivo, indent=4)
+                #Confirma que los datos se han actualizado y le vueleve a mostrar el resultado actualizado del estado
+                print("Datos actualizados correctamente")
+                nuevo_data = datos["habitaciones"]["estado"][i]
+                print(f"El estado actual de la sala {id_habitacion} es: {nuevo_data}")
+    else:
+        #Error al encontrar el id
+        print(f"La habitación con id {id_habitacion} no existe.")
+
+# =============================================================================
+# FUNCIONES PARA CARGAR Y GUARDAR VALORES COMPARATIVOS DE SANIDAD
+# Estructura esperada del JSON valores_comparativos.json:
+# {
+#     "s_temperatura": 0,
+#     "s_humedad": 0,
+#     "s_calidad_aire": {
+#         "PM2.5": 0,
+#         "PM10": 0,
+#         "CO": 0,
+#         "NO2": 0,
+#         "CO2": 0,
+#         "TVOC": 0
+#     }
+# }
+# =============================================================================
+
+def cargar_valores_comparativos(ruta=RUTA_VALORES_COMPARATIVOS):
+    # Lee el archivo JSON de valores comparativos y devuelve un diccionario.
+    datos = {}
+    existe = os.path.exists(ruta)
+
+    if not existe:
+        print("\n[ERROR] No se encontró el archivo de valores comparativos:", ruta)
+        return {}
+
+    f = None
+    try:
+        f = open(ruta, "r", encoding="utf-8")
+        datos = json.load(f)
+    except Exception as e:
+        print("\n[ERROR] No se pudo cargar el archivo de valores comparativos:", str(e))
+        datos = {}
+    if f is not None:
+        f.close()
+
+    if isinstance(datos, dict):
+        return datos
+    else:
+        print("\n[ERROR] El contenido de valores_comparativos.json no es un diccionario.")
+        return {}
+
+
+def guardar_valores_comparativos(data, ruta=RUTA_VALORES_COMPARATIVOS):
+    # Guarda en disco el diccionario de valores comparativos.
+    f = None
+    try:
+        f = open(ruta, "w", encoding="utf-8")
+        texto = json.dumps(data, ensure_ascii=False, indent=4)
+        f.write(texto)
+    except Exception as e:
+        print("\n[ERROR] No se pudo escribir el archivo de valores comparativos:", str(e))
+        if f is not None:
+            f.close()
+        return False
+
+    if f is not None:
+        f.close()
+
+    return True
+
+def consultar_parametros_sanidad(parametro=None):
+    # Consulta los valores comparativos de sanidad.
+    # parametro:
+    #   - None          -> devuelve todo el contenido del JSON
+    #   - "temperatura" -> devuelve solo s_temperatura
+    #   - "humedad"     -> devuelve solo s_humedad
+    #   - nombre de parámetro de calidad del aire (ej: "PM2.5", "CO2")
+
+    datos = cargar_valores_comparativos()
+    if not datos:
+        return {"error": "No se han podido cargar los valores del JSON."}
+
+    # Sin parámetro: devolver todo el JSON
+    if parametro is None:
+        return datos
+
+    texto = parametro.strip()
+    parametro_minus = texto.lower()
+
+    # Mapear nombres lógicos a claves del JSON
+    if parametro_minus == "temperatura" or parametro_minus == "s_temperatura":
+        resultado = {}
+        resultado["s_temperatura"] = datos.get("s_temperatura")
+        return resultado
+
+    if parametro_minus == "humedad" or parametro_minus == "s_humedad":
+        resultado = {}
+        resultado["s_humedad"] = datos.get("s_humedad")
+        return resultado
+
+    # Buscar en s_calidad_aire
+    calidad = datos.get("s_calidad_aire")
+    if not isinstance(calidad, dict):
+        return {"error": "La sección 's_calidad_aire' no existe o no es válida en el JSON."}
+
+    claves = list(calidad.keys())
+    i = 0
+    total = len(claves)
+    nombre_real = None
+
+    while i < total and nombre_real is None:
+        clave_actual = claves[i]
+        if isinstance(clave_actual, str):
+            if clave_actual.lower() == parametro_minus:
+                nombre_real = clave_actual
+        i = i + 1
+
+    if nombre_real is None:
+        return {"error": "El parámetro '" + texto + "' no existe en s_calidad_aire."}
+
+    resultado = {}
+    resultado[nombre_real] = calidad.get(nombre_real)
+    return resultado
+
+
+def mostrar_tabla_parametros_sanidad(diccionario):
+    # Muestra por pantalla los valores comparativos de sanidad de forma ordenada.
+
+    if not isinstance(diccionario, dict):
+        print("\n[ERROR] Estructura de datos no válida al mostrar parámetros.")
+        return
+
+    if "error" in diccionario:
+        print("\n[ERROR] " + str(diccionario["error"]))
+        return
+
+    print("\n=========== PARÁMETROS DE SANIDAD (COMPARATIVOS) ===========\n")
+
+    # Si se ha pedido todo el JSON (s_temperatura, s_humedad y s_calidad_aire)
+    if "s_calidad_aire" in diccionario:
+        # Mostrar s_temperatura si existe
+        if "s_temperatura" in diccionario:
+            print("s_temperatura:", diccionario.get("s_temperatura"))
+        # Mostrar s_humedad si existe
+        if "s_humedad" in diccionario:
+            print("s_humedad:", diccionario.get("s_humedad"))
+
+        # Mostrar todos los parámetros de s_calidad_aire
+        calidad = diccionario.get("s_calidad_aire")
+        if isinstance(calidad, dict):
+            print("\n--- s_calidad_aire ---\n")
+            claves = list(calidad.keys())
+            i = 0
+            total = len(claves)
+            while i < total:
+                clave = claves[i]
+                valor = calidad.get(clave)
+                print(clave + ":", valor)
+                i = i + 1
+    else:
+        # Se ha pedido un subconjunto: por ejemplo solo s_temperatura,
+        # solo s_humedad o un parámetro de calidad del aire.
+        claves_dic = list(diccionario.keys())
+        i = 0
+        total = len(claves_dic)
+        while i < total:
+            clave = claves_dic[i]
+            valor = diccionario.get(clave)
+            print(str(clave) + ":", valor)
+            i = i + 1
+
+    print("\n=============================================================\n")
+
+def consultar_parametros_sanidad_interactivo():
+    # Menú interactivo para consultar los valores comparativos de sanidad.
+
+    print("\n=== CONSULTA DE PARÁMETROS DE SANIDAD ===")
+    print("1. Ver todos los parámetros")
+    print("2. Ver parámetro de temperatura (s_temperatura)")
+    print("3. Ver parámetro de humedad (s_humedad)")
+    print("4. Ver un parámetro de calidad del aire (s_calidad_aire)")
+    opcion = input("Selecciona una opción: ").strip()
+
+    if opcion == "1":
+        resultado = consultar_parametros_sanidad()
+        mostrar_tabla_parametros_sanidad(resultado)
+    elif opcion == "2":
+        resultado = consultar_parametros_sanidad("temperatura")
+        mostrar_tabla_parametros_sanidad(resultado)
+    elif opcion == "3":
+        resultado = consultar_parametros_sanidad("humedad")
+        mostrar_tabla_parametros_sanidad(resultado)
+    elif opcion == "4":
+        nombre = input("Introduce el nombre del parámetro de calidad del aire (ej: PM2.5, CO2): ").strip()
+        resultado = consultar_parametros_sanidad(nombre)
+        mostrar_tabla_parametros_sanidad(resultado)
+    else:
+        print("\nOpción no válida en la consulta de parámetros de sanidad.")
+
+def cambiar_parametros_sanidad_interactivo():
+    # Menú interactivo para modificar los valores comparativos de sanidad.
+    # Se basa en el archivo valores_comparativos.json.
+
+    datos = cargar_valores_comparativos()
+    if not datos:
+        return
+
+    print("\n=== CATEGORÍAS DISPONIBLES EN valores_comparativos.json ===")
+    claves_categorias = list(datos.keys())
+    i = 0
+    total_cat = len(claves_categorias)
+    indice = 1
+    while i < total_cat:
+        print(str(indice) + ". " + str(claves_categorias[i]))
+        i = i + 1
+        indice = indice + 1
+
+    opcion_texto = input("\nSeleccione una categoría (número): ").strip()
+    if not opcion_texto.isdigit():
+        print("Opción inválida.")
+        return
+
+    opcion_num = int(opcion_texto)
+    if opcion_num < 1 or opcion_num > total_cat:
+        print("Opción inválida.")
+        return
+
+    categoria = claves_categorias[opcion_num - 1]
+
+    # Caso 1: s_temperatura o s_humedad (valores simples)
+    if categoria == "s_temperatura" or categoria == "s_humedad":
+        valor_actual = datos.get(categoria)
+        print("\nValor actual de " + categoria + ":", valor_actual)
+        nuevo_valor_texto = input("Nuevo valor (normalmente 0, 1 o 2): ").strip()
+
+        # Intentar convertir a número
+        nuevo_valor = None
+        if nuevo_valor_texto.isdigit():
+            nuevo_valor = int(nuevo_valor_texto)
+        else:
+            nuevo_valor = nuevo_valor_texto
+
+        datos[categoria] = nuevo_valor
+
+    # Caso 2: s_calidad_aire (diccionario con varios parámetros)
+    elif categoria == "s_calidad_aire":
+        bloque = datos.get("s_calidad_aire")
+        if not isinstance(bloque, dict):
+            print("La categoría s_calidad_aire no tiene una estructura válida.")
+            return
+
+        print("\n=== Parámetros de s_calidad_aire ===")
+        claves_param = list(bloque.keys())
+        i = 0
+        total_param = len(claves_param)
+        indice = 1
+        while i < total_param:
+            print(str(indice) + ". " + str(claves_param[i]))
+            i = i + 1
+            indice = indice + 1
+
+        opcion_param_texto = input("\nSeleccione un parámetro (número): ").strip()
+        if not opcion_param_texto.isdigit():
+            print("Opción inválida.")
+            return
+
+        opcion_param_num = int(opcion_param_texto)
+        if opcion_param_num < 1 or opcion_param_num > total_param:
+            print("Opción inválida.")
+            return
+
+        param_seleccionado = claves_param[opcion_param_num - 1]
+        valor_actual = bloque.get(param_seleccionado)
+        print("\nValor actual de " + param_seleccionado + ":", valor_actual)
+
+        nuevo_valor_texto = input("Nuevo valor (normalmente 0, 1 o 2): ").strip()
+
+        nuevo_valor = None
+        if nuevo_valor_texto.isdigit():
+            nuevo_valor = int(nuevo_valor_texto)
+        else:
+            nuevo_valor = nuevo_valor_texto
+
+        bloque[param_seleccionado] = nuevo_valor
+        datos["s_calidad_aire"] = bloque
+
+    else:
+        # Si en el futuro hubiera más claves, se podría gestionar aquí.
+        print("Categoría no reconocida para edición.")
+        return
+
+    correcto = guardar_valores_comparativos(datos)
+    if correcto:
+        print("\nParámetro actualizado correctamente.")
+    else:
+        print("\nNo se pudo guardar la actualización en el archivo.")
+>>>>>>> sprint2/Lucía_luciasg9_eliminar_usuarios_menu_trabajador
