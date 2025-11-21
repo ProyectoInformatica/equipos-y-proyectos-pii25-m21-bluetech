@@ -11,7 +11,10 @@
 
 import json      # Se importa el módulo "json" para leer y escribir archivos en formato JSON.
 import hashlib   # Se importa hashlib para poder calcular el hash (SHA-256) de las contraseñas.
+import os   # Para comprobar la existencia del JSON de parámetros de sanidad
 
+# Ruta del archivo con los valores comparativos de sanidad
+RUTA_VALORES_COMPARATIVOS = "valores_comparativos.json"
 
 # Clase que define los tipos de roles posibles para un usuario.
 class Rol:
@@ -462,53 +465,57 @@ def cambiar_estado_ocupacion_sala(ruta_sensores="habitacion.json"):
         print(f"La habitación con id {id_habitacion} no existe.")
 
 # =============================================================================
-# Funciones para consultar y modificar parámetros de sanidad
-# Archivo: valores_recomendados.json
-# Estructura esperada:
-#   - temperatura: {min, max, unidad, descripcion}
-#   - humedad: {min, max, unidad, descripcion}
-#   - calidad_aire: { "PM2.5": {max, unidad, descripcion}, ... }
+# FUNCIONES PARA CARGAR Y GUARDAR VALORES COMPARATIVOS DE SANIDAD
+# Estructura esperada del JSON valores_comparativos.json:
+# {
+#     "s_temperatura": 0,
+#     "s_humedad": 0,
+#     "s_calidad_aire": {
+#         "PM2.5": 0,
+#         "PM10": 0,
+#         "CO": 0,
+#         "NO2": 0,
+#         "CO2": 0,
+#         "TVOC": 0
+#     }
+# }
 # =============================================================================
 
-def cargar_valores_recomendados_sanidad(ruta="valores_recomendados.json"):
-    # Lee el archivo JSON de valores recomendados de sanidad.
-    datos = None
-    f = None
+def cargar_valores_comparativos(ruta=RUTA_VALORES_COMPARATIVOS):
+    # Lee el archivo JSON de valores comparativos y devuelve un diccionario.
+    datos = {}
+    existe = os.path.exists(ruta)
 
+    if not existe:
+        print("\n[ERROR] No se encontró el archivo de valores comparativos:", ruta)
+        return {}
+
+    f = None
     try:
         f = open(ruta, "r", encoding="utf-8")
         datos = json.load(f)
-    except FileNotFoundError:
-        print("\nNo se encontró el archivo de valores recomendados:", ruta)
-        if f is not None:
-            f.close()
-        return {}
     except Exception as e:
-        print("\nError al leer el archivo de valores recomendados:", str(e))
-        if f is not None:
-            f.close()
-        return {}
-
+        print("\n[ERROR] No se pudo cargar el archivo de valores comparativos:", str(e))
+        datos = {}
     if f is not None:
         f.close()
 
     if isinstance(datos, dict):
         return datos
     else:
-        print("\nEl contenido de valores_recomendados.json no es un diccionario.")
+        print("\n[ERROR] El contenido de valores_comparativos.json no es un diccionario.")
         return {}
 
 
-def guardar_valores_recomendados_sanidad(data, ruta="valores_recomendados.json"):
-    # Escribe en disco el diccionario de valores recomendados actualizado.
+def guardar_valores_comparativos(data, ruta=RUTA_VALORES_COMPARATIVOS):
+    # Guarda en disco el diccionario de valores comparativos.
     f = None
-
     try:
         f = open(ruta, "w", encoding="utf-8")
         texto = json.dumps(data, ensure_ascii=False, indent=4)
         f.write(texto)
     except Exception as e:
-        print("\nError al escribir el archivo de valores recomendados:", str(e))
+        print("\n[ERROR] No se pudo escribir el archivo de valores comparativos:", str(e))
         if f is not None:
             f.close()
         return False
@@ -518,51 +525,55 @@ def guardar_valores_recomendados_sanidad(data, ruta="valores_recomendados.json")
 
     return True
 
-def consultar_parametros_sanidad(parametro=None, ruta="valores_recomendados.json"):
-    # Devuelve un diccionario con los valores recomendados.
+def consultar_parametros_sanidad(parametro=None):
+    # Consulta los valores comparativos de sanidad.
     # parametro:
-    #   - None        -> todo el contenido
-    #   - "temperatura" o "humedad"
-    #   - nombre de un parámetro de calidad del aire (ej: "PM2.5", "CO2")
+    #   - None          -> devuelve todo el contenido del JSON
+    #   - "temperatura" -> devuelve solo s_temperatura
+    #   - "humedad"     -> devuelve solo s_humedad
+    #   - nombre de parámetro de calidad del aire (ej: "PM2.5", "CO2")
 
-    datos = cargar_valores_recomendados_sanidad(ruta)
+    datos = cargar_valores_comparativos()
     if not datos:
         return {"error": "No se han podido cargar los valores del JSON."}
 
+    # Sin parámetro: devolver todo el JSON
     if parametro is None:
         return datos
 
-    parametro = parametro.strip().lower()
+    texto = parametro.strip()
+    parametro_minus = texto.lower()
 
-    # Temperatura u humedad
-    if parametro == "temperatura" or parametro == "humedad":
-        valor = datos.get(parametro)
-        if isinstance(valor, dict):
-            resultado = {}
-            resultado[parametro] = valor
-            return resultado
-        else:
-            return {"error": "El parámetro '" + parametro + "' no existe en el JSON."}
+    # Mapear nombres lógicos a claves del JSON
+    if parametro_minus == "temperatura" or parametro_minus == "s_temperatura":
+        resultado = {}
+        resultado["s_temperatura"] = datos.get("s_temperatura")
+        return resultado
 
-    # Calidad del aire
-    calidad = datos.get("calidad_aire", {})
+    if parametro_minus == "humedad" or parametro_minus == "s_humedad":
+        resultado = {}
+        resultado["s_humedad"] = datos.get("s_humedad")
+        return resultado
+
+    # Buscar en s_calidad_aire
+    calidad = datos.get("s_calidad_aire")
     if not isinstance(calidad, dict):
-        return {"error": "La sección 'calidad_aire' no existe o no es válida."}
+        return {"error": "La sección 's_calidad_aire' no existe o no es válida en el JSON."}
 
-    # Búsqueda manual sin for
     claves = list(calidad.keys())
     i = 0
     total = len(claves)
     nombre_real = None
+
     while i < total and nombre_real is None:
         clave_actual = claves[i]
         if isinstance(clave_actual, str):
-            if clave_actual.lower() == parametro:
+            if clave_actual.lower() == parametro_minus:
                 nombre_real = clave_actual
         i = i + 1
 
     if nombre_real is None:
-        return {"error": "El parámetro '" + parametro + "' no existe en calidad_aire."}
+        return {"error": "El parámetro '" + texto + "' no existe en s_calidad_aire."}
 
     resultado = {}
     resultado[nombre_real] = calidad.get(nombre_real)
@@ -570,7 +581,7 @@ def consultar_parametros_sanidad(parametro=None, ruta="valores_recomendados.json
 
 
 def mostrar_tabla_parametros_sanidad(diccionario):
-    # Muestra por pantalla la información de parámetros de sanidad de forma ordenada.
+    # Muestra por pantalla los valores comparativos de sanidad de forma ordenada.
 
     if not isinstance(diccionario, dict):
         print("\n[ERROR] Estructura de datos no válida al mostrar parámetros.")
@@ -580,63 +591,51 @@ def mostrar_tabla_parametros_sanidad(diccionario):
         print("\n[ERROR] " + str(diccionario["error"]))
         return
 
-    print("\n================ PARÁMETROS DE SANIDAD ================\n")
+    print("\n=========== PARÁMETROS DE SANIDAD (COMPARATIVOS) ===========\n")
 
-    # Función interna para mostrar un parámetro con sus campos.
-    def imprimir_parametro(nombre, info):
-        if isinstance(info, dict):
-            print("- " + str(nombre) + ":")
-            claves_info = list(info.keys())
-            j = 0
-            total_claves = len(claves_info)
-            while j < total_claves:
-                clave = claves_info[j]
-                valor = info.get(clave)
-                print("   - " + str(clave).capitalize() + ": " + str(valor))
-                j = j + 1
-            print("")
+    # Si se ha pedido todo el JSON (s_temperatura, s_humedad y s_calidad_aire)
+    if "s_calidad_aire" in diccionario:
+        # Mostrar s_temperatura si existe
+        if "s_temperatura" in diccionario:
+            print("s_temperatura:", diccionario.get("s_temperatura"))
+        # Mostrar s_humedad si existe
+        if "s_humedad" in diccionario:
+            print("s_humedad:", diccionario.get("s_humedad"))
 
-    # Caso general: se pidió todo el JSON (temperatura, humedad y calidad_aire)
-    if "calidad_aire" in diccionario:
-        temp = diccionario.get("temperatura")
-        hum = diccionario.get("humedad")
-        if temp is not None:
-            imprimir_parametro("Temperatura", temp)
-        if hum is not None:
-            imprimir_parametro("Humedad", hum)
-
-        calidad = diccionario.get("calidad_aire")
+        # Mostrar todos los parámetros de s_calidad_aire
+        calidad = diccionario.get("s_calidad_aire")
         if isinstance(calidad, dict):
-            print("----- Calidad del Aire -----\n")
-            claves_calidad = list(calidad.keys())
+            print("\n--- s_calidad_aire ---\n")
+            claves = list(calidad.keys())
             i = 0
-            total_param = len(claves_calidad)
-            while i < total_param:
-                clave_param = claves_calidad[i]
-                info_param = calidad.get(clave_param)
-                imprimir_parametro(clave_param, info_param)
+            total = len(claves)
+            while i < total:
+                clave = claves[i]
+                valor = calidad.get(clave)
+                print(clave + ":", valor)
                 i = i + 1
     else:
-        # Se pidió un parámetro concreto (temperatura, humedad o un gas/partícula)
+        # Se ha pedido un subconjunto: por ejemplo solo s_temperatura,
+        # solo s_humedad o un parámetro de calidad del aire.
         claves_dic = list(diccionario.keys())
         i = 0
         total = len(claves_dic)
         while i < total:
             clave = claves_dic[i]
             valor = diccionario.get(clave)
-            imprimir_parametro(clave, valor)
+            print(str(clave) + ":", valor)
             i = i + 1
 
-    print("=======================================================\n")
+    print("\n=============================================================\n")
 
 def consultar_parametros_sanidad_interactivo():
-    # Menú por consola para que el usuario consulte los parámetros de sanidad.
+    # Menú interactivo para consultar los valores comparativos de sanidad.
 
     print("\n=== CONSULTA DE PARÁMETROS DE SANIDAD ===")
     print("1. Ver todos los parámetros")
-    print("2. Ver solo temperatura")
-    print("3. Ver solo humedad")
-    print("4. Ver un parámetro de calidad del aire (por nombre)")
+    print("2. Ver parámetro de temperatura (s_temperatura)")
+    print("3. Ver parámetro de humedad (s_humedad)")
+    print("4. Ver un parámetro de calidad del aire (s_calidad_aire)")
     opcion = input("Selecciona una opción: ").strip()
 
     if opcion == "1":
@@ -655,142 +654,100 @@ def consultar_parametros_sanidad_interactivo():
     else:
         print("\nOpción no válida en la consulta de parámetros de sanidad.")
 
-def actualizar_parametro_sanidad(categoria, parametro, clave, nuevo_valor, ruta="valores_recomendados.json"):
-    # Actualiza un valor en valores_recomendados.json.
-    # categoria: "temperatura", "humedad" o "calidad_aire"
-    # parametro: None para temperatura/humedad; nombre (ej: "PM2.5") para calidad_aire
-    # clave: "min", "max", "unidad" o "descripcion"
-    # nuevo_valor: valor nuevo que se quiere establecer
+def cambiar_parametros_sanidad_interactivo():
+    # Menú interactivo para modificar los valores comparativos de sanidad.
+    # Se basa en el archivo valores_comparativos.json.
 
-    datos = cargar_valores_recomendados_sanidad(ruta)
+    datos = cargar_valores_comparativos()
     if not datos:
-        return False
+        return
 
-    if categoria not in datos:
-        print("\nLa categoría '" + str(categoria) + "' no existe en el JSON.")
-        return False
+    print("\n=== CATEGORÍAS DISPONIBLES EN valores_comparativos.json ===")
+    claves_categorias = list(datos.keys())
+    i = 0
+    total_cat = len(claves_categorias)
+    indice = 1
+    while i < total_cat:
+        print(str(indice) + ". " + str(claves_categorias[i]))
+        i = i + 1
+        indice = indice + 1
 
-    if categoria == "temperatura" or categoria == "humedad":
-        if parametro is not None:
-            print("\nPara temperatura/humedad no se utiliza un parámetro secundario.")
-            return False
+    opcion_texto = input("\nSeleccione una categoría (número): ").strip()
+    if not opcion_texto.isdigit():
+        print("Opción inválida.")
+        return
 
-        bloque = datos.get(categoria)
+    opcion_num = int(opcion_texto)
+    if opcion_num < 1 or opcion_num > total_cat:
+        print("Opción inválida.")
+        return
+
+    categoria = claves_categorias[opcion_num - 1]
+
+    # Caso 1: s_temperatura o s_humedad (valores simples)
+    if categoria == "s_temperatura" or categoria == "s_humedad":
+        valor_actual = datos.get(categoria)
+        print("\nValor actual de " + categoria + ":", valor_actual)
+        nuevo_valor_texto = input("Nuevo valor (normalmente 0, 1 o 2): ").strip()
+
+        # Intentar convertir a número
+        nuevo_valor = None
+        if nuevo_valor_texto.isdigit():
+            nuevo_valor = int(nuevo_valor_texto)
+        else:
+            nuevo_valor = nuevo_valor_texto
+
+        datos[categoria] = nuevo_valor
+
+    # Caso 2: s_calidad_aire (diccionario con varios parámetros)
+    elif categoria == "s_calidad_aire":
+        bloque = datos.get("s_calidad_aire")
         if not isinstance(bloque, dict):
-            print("\nLa estructura de '" + str(categoria) + "' no es válida.")
-            return False
+            print("La categoría s_calidad_aire no tiene una estructura válida.")
+            return
 
-        if clave not in bloque:
-            print("\nLa clave '" + str(clave) + "' no existe en la categoría '" + str(categoria) + "'.")
-            return False
-
-        bloque[clave] = nuevo_valor
-
-    elif categoria == "calidad_aire":
-        calidad = datos.get("calidad_aire")
-        if not isinstance(calidad, dict):
-            print("\nLa sección 'calidad_aire' no es válida.")
-            return False
-
-        if parametro is None:
-            print("\nDebe indicar el nombre del parámetro de calidad del aire (ej: PM2.5).")
-            return False
-
-        nombre_busqueda = parametro.strip().lower()
-        claves_calidad = list(calidad.keys())
+        print("\n=== Parámetros de s_calidad_aire ===")
+        claves_param = list(bloque.keys())
         i = 0
-        total = len(claves_calidad)
-        nombre_real = None
-
-        # Búsqueda del parámetro en calidad_aire sin usar for
-        while i < total and nombre_real is None:
-            clave_actual = claves_calidad[i]
-            if isinstance(clave_actual, str):
-                if clave_actual.lower() == nombre_busqueda:
-                    nombre_real = clave_actual
+        total_param = len(claves_param)
+        indice = 1
+        while i < total_param:
+            print(str(indice) + ". " + str(claves_param[i]))
             i = i + 1
+            indice = indice + 1
 
-        if nombre_real is None:
-            print("\nEl parámetro '" + str(parametro) + "' no existe en calidad_aire.")
-            return False
+        opcion_param_texto = input("\nSeleccione un parámetro (número): ").strip()
+        if not opcion_param_texto.isdigit():
+            print("Opción inválida.")
+            return
 
-        bloque_param = calidad.get(nombre_real)
-        if not isinstance(bloque_param, dict):
-            print("\nLa estructura del parámetro '" + str(nombre_real) + "' no es válida.")
-            return False
+        opcion_param_num = int(opcion_param_texto)
+        if opcion_param_num < 1 or opcion_param_num > total_param:
+            print("Opción inválida.")
+            return
 
-        if clave not in bloque_param:
-            print("\nLa clave '" + str(clave) + "' no existe en el parámetro '" + str(nombre_real) + "'.")
-            return False
+        param_seleccionado = claves_param[opcion_param_num - 1]
+        valor_actual = bloque.get(param_seleccionado)
+        print("\nValor actual de " + param_seleccionado + ":", valor_actual)
 
-        bloque_param[clave] = nuevo_valor
+        nuevo_valor_texto = input("Nuevo valor (normalmente 0, 1 o 2): ").strip()
 
-    # Guardar cambios
-    correcto = guardar_valores_recomendados_sanidad(datos, ruta)
+        nuevo_valor = None
+        if nuevo_valor_texto.isdigit():
+            nuevo_valor = int(nuevo_valor_texto)
+        else:
+            nuevo_valor = nuevo_valor_texto
+
+        bloque[param_seleccionado] = nuevo_valor
+        datos["s_calidad_aire"] = bloque
+
+    else:
+        # Si en el futuro hubiera más claves, se podría gestionar aquí.
+        print("Categoría no reconocida para edición.")
+        return
+
+    correcto = guardar_valores_comparativos(datos)
     if correcto:
         print("\nParámetro actualizado correctamente.")
-        return True
     else:
-        return False
-
-
-def cambiar_parametros_sanidad_interactivo():
-    # Menú por consola para cambiar un parámetro de sanidad.
-
-    print("\n=== CAMBIO DE PARÁMETROS DE SANIDAD ===")
-    print("Categoría:")
-    print("1. Temperatura")
-    print("2. Humedad")
-    print("3. Calidad del aire")
-    opcion_cat = input("Selecciona la categoría: ").strip()
-
-    categoria = None
-    parametro = None
-
-    if opcion_cat == "1":
-        categoria = "temperatura"
-    elif opcion_cat == "2":
-        categoria = "humedad"
-    elif opcion_cat == "3":
-        categoria = "calidad_aire"
-        parametro = input("Introduce el nombre del parámetro de calidad del aire (ej: PM2.5, CO2): ").strip()
-    else:
-        print("\nOpción de categoría no válida.")
-        return
-
-    print("\nClave a modificar:")
-    print("1. min")
-    print("2. max")
-    print("3. unidad")
-    print("4. descripcion")
-    opcion_clave = input("Selecciona la clave: ").strip()
-
-    clave = None
-    if opcion_clave == "1":
-        clave = "min"
-    elif opcion_clave == "2":
-        clave = "max"
-    elif opcion_clave == "3":
-        clave = "unidad"
-    elif opcion_clave == "4":
-        clave = "descripcion"
-    else:
-        print("\nOpción de clave no válida.")
-        return
-
-    # Pedimos el nuevo valor como texto.
-    texto_valor = input("Introduce el nuevo valor para '" + clave + "': ").strip()
-
-    # Intentamos convertir a número si la clave es min o max, manteniendo texto para unidad/descripcion.
-    nuevo_valor = texto_valor
-    if clave == "min" or clave == "max":
-        try:
-            # Intentamos convertir a número (float). Si el valor es entero, puede quedar como float igualmente.
-            numero = float(texto_valor)
-            nuevo_valor = numero
-        except Exception:
-            print("\nEl valor introducido para '" + clave + "' no es numérico. Se guardará como texto.")
-            nuevo_valor = texto_valor
-
-    actualizar_parametro_sanidad(categoria, parametro, clave, nuevo_valor)
-
+        print("\nNo se pudo guardar la actualización en el archivo.")
