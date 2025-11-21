@@ -1,133 +1,254 @@
-# Se importan las clases necesarias 
-# RepositorioCredenciales: maneja usuarios y contraseñas
-# Rol: define los roles de usuario (administrador o trabajador)
-from modeloBlueTech import RepositorioCredenciales, Rol
+# Se importan las clases necesarias desde el módulo de modelo.
+# RepositorioCredenciales: maneja la carga, verificación y eliminación de usuarios.
+# Rol: define los posibles roles de los usuarios (administrador y trabajador).
+from modeloBlueTech import RepositorioCredenciales, Rol,os
 
 
-# Muestra el menú principal del programa y devuelve la opción seleccionada por el usuario.
+# Muestra el menú principal del programa y devuelve la opción seleccionada.
 def mostrar_menu_principal():
+    # Muestra las opciones principales de la aplicación.
+    print("Carpeta actual de trabajo:", os.getcwd())
+    print("Ruta completa del JSON:", os.path.abspath("usuarios.json"))
+
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    print("Carpeta de trabajo corregida →", os.getcwd())
+
     print("\n=== MENÚ PRINCIPAL ===")
     print("1. Iniciar sesión")
     print("2. Salir")
-    # Se devuelve la opción elegida (sin espacios en blanco).
+
+    # Se devuelve la opción elegida por el usuario, eliminando espacios en blanco.
     return input("Selecciona una opción: ").strip()
 
 
-# Permite al usuario elegir si quiere iniciar sesión como administrador o trabajador.
+# Permite al usuario seleccionar el rol con el que quiere iniciar sesión.
 def seleccionar_rol():
+    # Muestra el submenú de selección de rol.
     print("\n=== SELECCIÓN DE ROL ===")
     print("1. Administrador")
     print("2. Trabajador")
+
     opcion = input("Selecciona tu rol: ").strip()
 
-    # Dependiendo de la opción ingresada, se devuelve el rol correspondiente.
+    # Dependiendo de la opción, se devuelve el rol correspondiente.
     if opcion == "1":
         return Rol.ADMINISTRADOR
-    elif opcion == "2":
+    if opcion == "2":
         return Rol.TRABAJADOR
-    else:
-        # Si la opción no es válida, se muestra un mensaje y devuelve None.
-        print("Opción no válida. Intenta de nuevo.")
-        return None
+
+    # Si no se selecciona una opción válida, se informa y se devuelve None.
+    print("Opción no válida. Intenta de nuevo.")
+    return None
 
 
-# Muestra las opciones disponibles para un usuario con rol de administrador.
-# Recibe como parámetro el objeto 'usuario' autenticado.
-def mostrar_menu_admin(usuario):
-    sesion_activa = True  # Bandera que controla la sesión del usuario.
+# Menú para usuarios con rol ADMINISTRADOR.
+# Recibe:
+#   - usuario: objeto Usuario autenticado.
+#   - repo:    instancia de RepositorioCredenciales para acceder a usuarios y JSON.
+def mostrar_menu_admin(usuario, repo):
+    # Bandera para controlar la sesión dentro del menú de administrador.
+    sesion_activa = True
+
     while sesion_activa:
         print("\n=== MENÚ ADMINISTRADOR ===")
-        print("Usuario:", usuario.nombre_usuario)
-        print("1. Ver usuarios del sistema (simulado)")
-        print("2. Configurar parámetros (simulado)")
-        print("3. Cerrar sesión")
+        print("Usuario autenticado:", usuario.nombre_usuario)
+        print("1. Listar todos los usuarios")
+        print("2. Buscar usuario por nombre de login")
+        print("3. Agregar usuario")
+        print("4. Eliminar usuario por ID")
+        print("0. Cerrar sesión")
+
         eleccion = input("Selecciona una opción: ").strip()
 
-        # Opciones de demostración (no realizan acciones reales).
+        # Opción 1: mostrar todos los usuarios cargados en el repositorio.
         if eleccion == "1":
-            print("Listado de usuarios (demo).")
+            print("\n--- LISTADO DE USUARIOS ---")
+            i = 0
+            total = len(repo.usuarios)
+            while i < total:
+                u = repo.usuarios[i]
+                # Se muestra el ID, el nombre de login y el rol (valor legible del Enum).
+                print(
+                    "ID:", u.id_usuario,
+                    "| Usuario (login):", u.nombre_usuario,
+                    "| Rol:", u.rol
+                )
+                i = i + 1
+
+        # Opción 2: buscar un usuario concreto por su nombre de login.
         elif eleccion == "2":
-            print("Configuración de parámetros (demo).")
+            nombre_busqueda = input("Introduce el nombre de usuario a buscar: ").strip()
+            encontrado = None
+
+            i = 0
+            total = len(repo.usuarios)
+            while i < total and encontrado is None:
+                u = repo.usuarios[i]
+                if u.nombre_usuario == nombre_busqueda:
+                    encontrado = u
+                else:
+                    i = i + 1
+
+            if encontrado is None:
+                print("No se ha encontrado ningún usuario con ese nombre de login.")
+            else:
+                print("Usuario encontrado:")
+                print(
+                    "ID:", encontrado.id_usuario,
+                    "| Usuario (login):", encontrado.nombre_usuario,
+                    "| Rol:", encontrado.rol    
+                )
+
+        
+        # Opción 3: AGREGAR NUEVO TRABAJADOR.
         elif eleccion == "3":
-            sesion_activa = False  # Finaliza la sesión.
+            print("\n" + "="*50)
+            print("     AGREGAR NUEVO TRABAJADOR")
+            print("="*50)
+
+            nombre = input("Nombre: ").strip()
+            apellidos = input("Apellidos: ").strip()
+            nombre_usuario = input("Nombre de usuario (login): ").strip()
+            contrasena = input("Contraseña: ").strip()
+
+            # Validaciones básicas
+            if not all([nombre, apellidos, nombre_usuario, contrasena]):
+                print("Todos los campos son obligatorios.")
+                continue
+
+            if any(u.nombre_usuario == nombre_usuario for u in repo.usuarios):
+                print(f"Error: El nombre de usuario '{nombre_usuario}' ya existe.")
+                continue
+
+            if len(contrasena) < 4:
+                print("La contraseña debe tener al menos 4 caracteres.")
+                continue
+
+            # Llamada a la función que ya tienes en el modelo
+            exito = repo.agregar_trabajador(nombre, apellidos, nombre_usuario, contrasena)
+            if exito:
+                print("Trabajador agregado exitosamente.")
+            else:
+                print("No se pudo agregar el trabajador.")
+
+        # Opción 4: eliminar un usuario por ID con confirmación.
+        elif eleccion == "4":
+            id_texto = input("Introduce el ID del usuario a eliminar: ").strip()
+            if id_texto.isdigit():
+                id_eliminar = int(id_texto)
+                # Se delega la lógica de búsqueda, confirmación y borrado en el repositorio.
+                repo.eliminar_usuario_por_id(id_eliminar)
+            else:
+                print("El ID debe ser un número entero.")
+
+
+        # Opción 0: fin de sesión.
+        elif eleccion == "0":
+            sesion_activa = False
+            print("Cerrando sesión de administrador...")
+
+        # Cualquier otra cosa: opción no válida.
         else:
             print("Opción no válida.")
 
-# Muestra las opciones para un usuario con rol de trabajador.
-# Recibe como parámetro el objeto 'usuario' autenticado.
+
+# Muestra el menú de opciones para un usuario con rol de trabajador.
+# Recibe:
+#   - usuario: objeto Usuario autenticado como trabajador.
 def mostrar_menu_trabajador(usuario):
+    # Bandera para controlar la sesión dentro del menú de trabajador.
     sesion_activa = True
+
     while sesion_activa:
         print("\n=== MENÚ TRABAJADOR ===")
-        print("Usuario:", usuario.nombre_usuario)
+        print("Usuario autenticado:", usuario.nombre_usuario)
         print("1. Consultar estado de salas (simulado)")
         print("2. Ver parámetros ambientales (simulado)")
-        print("3. Cerrar sesión")
+        print("0. Cerrar sesión")
+
         eleccion = input("Selecciona una opción: ").strip()
 
-        # Opciones de demostración (sin funcionalidad real).
+        # Opción 1: funcionalidad simulada de consulta de salas.
         if eleccion == "1":
-            print("Consultando salas (demo).")
+            print("\nConsultando estado de salas (demo).")
+
+        # Opción 2: funcionalidad simulada de parámetros ambientales.
         elif eleccion == "2":
-            print("Mostrando parámetros ambientales (demo).")
-        elif eleccion == "3":
-            sesion_activa = False  # Finaliza la sesión.
+            print("\nMostrando parámetros ambientales (demo).")
+
+        # Opción 0: cerrar sesión del trabajador.
+        elif eleccion == "0":
+            sesion_activa = False
+
+        # Cualquier otra opción se considera inválida.
         else:
-            print("Opción no válida.")
+            print("\nOpción no válida. Intente de nuevo.")
 
 
-# Es el punto de entrada del programa. Controla el flujo principal del sistema.
+# Punto de entrada principal del programa.
 def main():
-    # Mensaje de bienvenida
+    # Mensaje de bienvenida al sistema.
     print("=======================================")
     print("   Bienvenido/a al sistema BlueTech")
     print("=======================================")
 
-    # Se crea un repositorio de credenciales con las rutas a los archivos JSON.
-    repo = RepositorioCredenciales("admins.json", "usuarios.json")
+    # Se crea el repositorio de credenciales indicando la ruta del archivo JSON
+    # que contiene todos los usuarios (administradores y trabajadores).
+    # Si en tu modelo el constructor de RepositorioCredenciales solo recibe ruta_usuarios,
+    # esta llamada es compatible porque se usa el parámetro con nombre.
+    repo = RepositorioCredenciales()
 
-    ejecutando = True  # Controla el ciclo principal del programa.
+    # Bandera que controla el ciclo principal del programa.
+    ejecutando = True
 
     while ejecutando:
         # Se muestra el menú principal y se obtiene la opción seleccionada.
         opcion = mostrar_menu_principal()
 
         if opcion == "1":
-            rol = None
-            # El usuario debe seleccionar un rol válido.
-            while rol is None:
-                rol = seleccionar_rol()
+            # El usuario debe seleccionar el rol con el que quiere iniciar sesión.
+            rol_seleccionado = None
+            while rol_seleccionado is None:
+                rol_seleccionado = seleccionar_rol()
 
+            # Variable donde se almacenará el usuario autenticado.
             usuario_valido = None
-            # Pide credenciales hasta que el usuario se autentique correctamente.
+
+            # Se repite el proceso de login hasta que se introduzcan credenciales correctas.
             while usuario_valido is None:
                 nombre_usuario = input("Usuario: ").strip()
                 contrasena = input("Contraseña: ").strip()
 
-                # Se verifica si las credenciales existen en el repositorio.
-                usuario_valido = repo.verificar_login(nombre_usuario, contrasena, rol)
+                # Se verifica el login contra el repositorio de credenciales.
+                usuario_valido = repo.verificar_login(
+                    nombre_usuario,
+                    contrasena,
+                    rol_seleccionado
+                )
 
-                # Si no se encontró, se muestra un mensaje y se repite.
                 if usuario_valido is None:
                     print("\nCredenciales incorrectas. Vuelve a intentarlo.\n")
 
-            # Si se logra autenticar, se da la bienvenida.
+            # En este punto, el usuario se ha autenticado correctamente.
             print("\nBienvenido/a,", usuario_valido.nombre_usuario)
 
-            # Dependiendo del rol del usuario, se muestra el menú correspondiente.
+            # Dependiendo del rol del usuario autenticado, se muestra el menú adecuado.
             if usuario_valido.es_administrador():
-                mostrar_menu_admin(usuario_valido)
+                mostrar_menu_admin(usuario_valido, repo)
             elif usuario_valido.es_trabajador():
                 mostrar_menu_trabajador(usuario_valido)
 
         elif opcion == "2":
+            # El usuario elige salir de la aplicación.
             print("\nSaliendo del sistema. Hasta pronto.")
-            ejecutando = False  # Finaliza el bucle principal.
+            ejecutando = False
 
         else:
+            # Opción inválida en el menú principal.
             print("\nOpción no válida. Intente de nuevo.")
 
 
-# Este bloque se ejecuta solo si el script se ejecuta directamente (no al importarse como módulo).
+# Este bloque se ejecuta solo si el archivo se ejecuta directamente,
+# no cuando se importa como módulo desde otro archivo.
 if __name__ == "__main__":
     main()
