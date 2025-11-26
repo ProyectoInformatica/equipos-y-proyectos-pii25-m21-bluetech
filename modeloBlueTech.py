@@ -198,12 +198,21 @@ class RepositorioCredenciales:
         # Devuelve el objeto Usuario si fue encontrado, o None si no existe o los datos no coinciden.
         return encontrado
 
-    def eliminar_usuario_por_id(self, id_usuario):
-        # Elimina un usuario del sistema a partir de su ID.
-        # La eliminación se hace sobre el archivo JSON de usuarios (self.ruta_usuarios)
-        # y después se recarga la información en memoria llamando a cargar_datos().
+    def eliminar_usuario_por_id(self, id_usuario, pedir_confirmacion_por_consola=True):
+        """
+        Elimina un usuario del sistema a partir de su ID.
 
-        # Primero intentamos leer el archivo JSON de usuarios.
+        - Si pedir_confirmacion_por_consola=True  -> funciona como hasta ahora (modo consola),
+          mostrando mensajes y pidiendo confirmación con input().
+        - Si pedir_confirmacion_por_consola=False -> NO pide nada por consola ni imprime;
+          simplemente intenta borrar y devuelve True/False.
+
+        Devuelve:
+            True  si se ha eliminado el usuario.
+            False si no existe el ID o ha habido algún problema.
+        """
+
+        # 1) Leer archivo JSON de usuarios
         datos = None
         f = None
 
@@ -211,90 +220,90 @@ class RepositorioCredenciales:
             f = open(self.ruta_usuarios, "r", encoding="utf-8")
             datos = json.load(f)
         except FileNotFoundError:
-            # Si no existe el archivo, no se puede realizar la eliminación.
-            print("\nNo se encontró el archivo de usuarios:", self.ruta_usuarios)
-            return
+            if pedir_confirmacion_por_consola:
+                print("\nNo se encontró el archivo de usuarios:", self.ruta_usuarios)
+            return False
+        finally:
+            if f is not None:
+                f.close()
 
-        if f is not None:
-            f.close()
+        if not isinstance(datos, dict):
+            if pedir_confirmacion_por_consola:
+                print("\nEl formato del archivo de usuarios no es válido.")
+            return False
 
-        # Obtenemos la lista de usuarios del JSON.
         lista = datos.get("usuarios", [])
         if not isinstance(lista, list):
-            print("\nLa estructura del archivo de usuarios no es válida.")
-            return
+            if pedir_confirmacion_por_consola:
+                print("\nLa estructura del archivo de usuarios no es válida.")
+            return False
 
-        # Buscamos el índice del usuario cuyo id coincida con el indicado.
-        # Detenemos la búsqueda cuando 'indice_encontrado' deja de ser -1.
-        indice_encontrado = -1
-        i = 0
-        total = len(lista)
+        # 2) Normalizar ID y buscar en la lista
         id_busqueda = id_usuario
-
-        # Si id_usuario viene como texto, intentamos convertirlo a entero.
         if isinstance(id_busqueda, str) and id_busqueda.isdigit():
             id_busqueda = int(id_busqueda)
 
+        indice_encontrado = -1
+        i = 0
+        total = len(lista)
+
         while i < total and indice_encontrado == -1:
             entrada = lista[i]
-            valor_id = entrada.get("id_usuario")
-
-            # Se compara el valor del id tal cual (normalmente entero).
-            if valor_id == id_busqueda:
+            if isinstance(entrada, dict) and entrada.get("id_usuario") == id_busqueda:
                 indice_encontrado = i
+            i += 1
 
-            i = i + 1
-
-        # Si no se encontró ningún usuario con ese ID, se informa y se sale.
         if indice_encontrado == -1:
-            print("\nNo existe ningún usuario con el ID:", id_busqueda)
-            return
+            if pedir_confirmacion_por_consola:
+                print("\nNo existe ningún usuario con el ID:", id_busqueda)
+            return False
 
-        # Mostramos al administrador qué usuario se va a eliminar.
         usuario_json = lista[indice_encontrado]
         nombre_login = usuario_json.get("nombre_usuario") or usuario_json.get("nombre")
         rol = usuario_json.get("rol")
 
-        print("\nSe va a eliminar el siguiente usuario del archivo JSON:")
-        print("ID:", usuario_json.get("id_usuario"), "| Usuario:", nombre_login, "| Rol:", rol)
+        # 3) Confirmación SOLO en modo consola
+        if pedir_confirmacion_por_consola:
+            print("\nSe va a eliminar el siguiente usuario del archivo JSON:")
+            print("ID:", usuario_json.get("id_usuario"), "| Usuario:", nombre_login, "| Rol:", rol)
+            print("Esta acción es permanente. Se eliminará del JSON.")
+            confirmacion = input("¿Confirmar eliminación? (S/N): ").strip().upper()
 
-        # Pedimos confirmación explícita al administrador.
-        print("Esta acción es permanente. Se eliminará del JSON.")
-        confirmacion = input("¿Confirmar eliminación? (S/N): ").strip().upper()
+            if confirmacion != "S":
+                print("\nOperación cancelada por el administrador.")
+                return False
 
-        if confirmacion != "S":
-            # Si el administrador no confirma con 'S', se cancela la operación.
-            print("\nOperación cancelada por el administrador.")
-            return
-
-        # Creamos una nueva lista de usuarios sin el elemento a eliminar.
+        # 4) Construir nueva lista sin el usuario
         nueva_lista = []
         j = 0
         while j < total:
             if j != indice_encontrado:
                 nueva_lista.append(lista[j])
-            j = j + 1
+            j += 1
 
-        # Reemplazamos la lista antigua por la nueva en la estructura de datos.
         datos["usuarios"] = nueva_lista
 
-        # Escribimos el JSON actualizado en el archivo.
+        # 5) Guardar JSON actualizado
         f2 = None
         try:
             f2 = open(self.ruta_usuarios, "w", encoding="utf-8")
             texto = json.dumps(datos, ensure_ascii=False, indent=4)
             f2.write(texto)
         except Exception as e:
-            print("\nError al escribir el archivo de usuarios:", str(e))
-            return
+            if pedir_confirmacion_por_consola:
+                print("\nError al escribir el archivo de usuarios:", str(e))
+            return False
+        finally:
+            if f2 is not None:
+                f2.close()
 
-        if f2 is not None:
-            f2.close()
-
-        # Recargamos los datos en memoria para que self.usuarios se actualice.
+        # 6) Recargar usuarios en memoria
         self.cargar_datos()
 
-        print("\nUsuario eliminado correctamente del sistema.")
+        if pedir_confirmacion_por_consola:
+            print("\nUsuario eliminado correctamente del sistema.")
+
+        return True
 
     def agregar_trabajador(self, nombre, apellidos, nombre_usuario, contrasena):
         
