@@ -6,8 +6,8 @@
         "descripcion": "Temperatura recomendada para espacios interiores."
     },
     "humedad": {
-        "min": 40,
-        "max": 34.0,
+        "min": 34.0,
+        "max": 40,
         "unidad": "%",
         "descripcion": "Rango ideal de humedad relativa."
     },
