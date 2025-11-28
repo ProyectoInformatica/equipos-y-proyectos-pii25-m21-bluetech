@@ -1,5 +1,7 @@
 import flet as ft
-# from vista.estado_salas_view import mostrar_pantalla_estado_salas
+from vista.estado_salas_view import mostrar_pantalla_estado_salas
+from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
+from vista.mapa_habitaciones_trabajadores_view import mostrar_pantalla_mapa_habitaciones_trabajadores
 # from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
 
 COLOR_PRINCIPAL = "blue" #color del fondo
@@ -9,7 +11,11 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
     from vista.login_view import mostrar_pantalla_login
     # Limpia la página
     page.clean()
-
+    page.horizontal_alignment = ft.MainAxisAlignment.CENTER
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.scroll = None
+    page.bgcolor = None
+    
     #funcion para diseño de los botones
     def crear_boton(texto, icono, on_click=None):
         return ft.ElevatedButton(
@@ -31,8 +37,14 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         )
 
     # Botones con navegación
-    boton_estado_salas = crear_boton("Visualizar / cambiar estado de salas", ft.Icons.MEETING_ROOM, #funcionalidad boton Visualizar / cambiar estado de salas
-        # on_click=lambda e: mostrar_pantalla_estado_salas(page, repo, usuario)
+    boton_estado_salas = crear_boton("Visualizar estado de salas", ft.Icons.MEETING_ROOM, #funcionalidad boton Visualizar estado de salas
+        on_click=lambda e: mostrar_pantalla_estado_salas(page, repo, usuario, origen="trabajador")
+    )
+    boton_cambiar_estado = crear_boton("Cambiar estado de salas", ft.Icons.SWAP_HORIZ,  #funcionalidad boton Actualizar estado de salas
+        on_click=lambda e: mostrar_pantalla_cambiar_estado(page, repo, usuario, origen="trabajador")
+    )
+    boton_mapa_habitaciones = crear_boton("Mapa estados habitaciones", ft.Icons.MAP,  #funcionalidad boton Mostrar mapa de las salas
+        on_click=lambda e: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario)
     )
     boton_parametros_sanidad = crear_boton("Consultar parámetros de sanidad", ft.Icons.HEALTH_AND_SAFETY, #funcionalidad boton Consultar parámetros de sanidad
         # on_click=lambda e: mostrar_pantalla_parametros_sanidad(page, repo, usuario)
@@ -62,6 +74,8 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
             ft.Divider(), #linea divisora
             #botones
             boton_estado_salas,
+            boton_cambiar_estado,
+            boton_mapa_habitaciones,
             boton_parametros_sanidad,
             ft.Divider(), #linea divisora
             boton_cerrar_sesion #boton cerrar sesión
@@ -72,7 +86,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         border_radius=15,
         shadow=ft.BoxShadow(blur_radius=10, color="grey"),
         width=600,
-        height=400
+        height=500
     )
 
     #toda la información que se va introducir en la pantalla
@@ -82,12 +96,8 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
             ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True), #imagen de fondo
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
-                content=ft.Column(
-                    controls=[tarjeta_menu], #bloque contenido principal
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                )
+                alignment=ft.alignment.center,   
+                content=tarjeta_menu
             )
         ]
     )
