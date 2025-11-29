@@ -13,12 +13,23 @@ def crear_habitacion_con_sensores(estado_habitacion):
     with open("habitacion.json", "r") as archivo:
         datos4 = json.load(archivo)
 
+    # Nuevo ID reutilizando huecos si existen
+    ids = datos4["habitaciones"]["id_habitacion"]
 
-    #Variable para la longitud del array de id_habitaciones del json
-    longitud = len(datos4["habitaciones"]["id_habitacion"])
+    if ids:
+        ids_ordenados = sorted(ids)
+        nuevo_id = None
+        for i in range(1, ids_ordenados[-1] + 1):
+            if i not in ids_ordenados:
+                nuevo_id = i
+                break
+        if nuevo_id is None:
+            nuevo_id = ids_ordenados[-1] + 1
+    else:
+        nuevo_id = 1
 
-    id = longitud + 1
-    id_sensor = (id * 10)
+    id = nuevo_id
+    id_sensor = id * 10
 
     #insercción de ids en el json de sensores y habitaciones
     datos4["habitaciones"]["id_habitacion"].append(id)
