@@ -91,11 +91,14 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     def agregar_habitacion(e):
         global datos
         estado = campo_estado.value #recoge el estado introducido
-        crear_habitacion_con_sensores(estado)  #crea una nueva habitación pasandole el estado
+        nuevo_id = crear_habitacion_con_sensores(estado)  #crea una nueva habitación pasandole el estado
         datos = cargar_datos()  # recarga el JSON actualizado
         actualizar_dropdown_ids() #actualiza el dropdown de ids de eliminar
         actualizar_dropdown_plantas() #actualiza el dropdown de plantas de duplicar
         actualizar_mapa() #actualiza el mapa
+        #Mensaje de confirmación visual
+        page.open(ft.SnackBar(ft.Text(f"✅ Habitación H{nuevo_id} creada correctamente")))
+        page.update()
 
     #botón para añadir nueva habitación llamando a la funcion agregar habitación
     boton_agregar = ft.ElevatedButton(text="➕ Añadir habitación", on_click=agregar_habitacion)
