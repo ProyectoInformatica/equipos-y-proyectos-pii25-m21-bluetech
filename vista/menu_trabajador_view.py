@@ -2,7 +2,7 @@ import flet as ft
 from vista.estado_salas_view import mostrar_pantalla_estado_salas
 from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
 from vista.mapa_habitaciones_trabajadores_view import mostrar_pantalla_mapa_habitaciones_trabajadores
-from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
+from vista.mostrar_pantalla_parametros_sanidad import mostrar_pantalla_parametros_sanidad
 
 COLOR_PRINCIPAL = "blue" #color del fondo
 COLOR_TEXTO = "white" #color del texto
