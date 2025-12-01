@@ -1,9 +1,9 @@
 import flet as ft
-# from vista.gestion_usuarios_view import mostrar_pantalla_gestion_usuarios
+from vista.gestion_usuarios_view import mostrar_pantalla_gestion_usuarios
 from vista.estado_salas_view import mostrar_pantalla_estado_salas
 from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
 from vista.mapa_habitaciones_view import mostrar_pantalla_mapa_admin
-# from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
+from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
 
 COLOR_PRINCIPAL = "blue" #color del fondo 
 COLOR_TEXTO = "white" #color del texto
@@ -36,25 +36,38 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
             expand=True, #responsibe
             on_click=on_click
         )
+    
+    # callback para volver desde la pantalla de gestión
+    def volver_desde_gestion():
+        mostrar_pantalla_menu_admin(page, repo, usuario)
+
+    def ir_a_gestion_usuarios(e):
+        mostrar_pantalla_gestion_usuarios(
+            page=page,
+            usuario=usuario,
+            repo=repo,
+            on_volver=volver_desde_gestion
+        )
 
     # Botones con navegación
     boton_gestion_usuarios = crear_boton("Gestión de usuarios", ft.Icons.PEOPLE, #funcionalidad boton Gestión de usuarios
-        #on_click=lambda e: mostrar_pantalla_gestion_usuarios(page, repo, usuario)
-        )
+        on_click=ir_a_gestion_usuarios,
+    )
     boton_estado_salas = crear_boton("Visualizar estado de salas", ft.Icons.MEETING_ROOM, #funcionalidad boton Visualizar estado de salas
         on_click=lambda e: mostrar_pantalla_estado_salas(page, repo, usuario, origen="admin")
-        )
+    )
     boton_cambiar_estado = crear_boton("Cambiar estado de salas",ft.Icons.SWAP_HORIZ, #funcionalidad boton actualizar estado de salas
         on_click=lambda e: mostrar_pantalla_cambiar_estado(page, repo, usuario, origen="admin")
     )
     boton_parametros_sanidad = crear_boton("Consultar / cambiar parámetros de sanidad", ft.Icons.HEALTH_AND_SAFETY, #funcionalidad boton Consultar / cambiar parámetros de sanidad
-        #on_click=lambda e: mostrar_pantalla_parametros_sanidad(page, repo, usuario)
-        )
+        on_click=lambda e: mostrar_pantalla_parametros_sanidad(page, repo, usuario)
+    )
     boton_mapa = crear_boton("Mapa de habitaciones", ft.Icons.MAP,  #funcionalidad boton mapa
         on_click=lambda e: mostrar_pantalla_mapa_admin(page, repo, usuario)
     )
     boton_cerrar_sesion = crear_boton("Cerrar sesión", ft.Icons.LOGOUT, #funcionalidad boton cerrar sesión
-        on_click=lambda e: mostrar_pantalla_login(page, repo))
+        on_click=lambda e: mostrar_pantalla_login(page, repo)
+    )
 
     #contenedor de contenido principal
     tarjeta_menu = ft.Container(
@@ -91,7 +104,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
         border_radius=15,
         shadow=ft.BoxShadow(blur_radius=10, color="grey"),
         width=600,
-        height=600
+        height=620
     )
 
     #toda la información que se va introducir en la pantalla

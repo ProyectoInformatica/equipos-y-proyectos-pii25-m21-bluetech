@@ -2,7 +2,7 @@ import flet as ft
 from vista.estado_salas_view import mostrar_pantalla_estado_salas
 from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
 from vista.mapa_habitaciones_trabajadores_view import mostrar_pantalla_mapa_habitaciones_trabajadores
-# from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
+from vista.parametros_sanidad_view import mostrar_pantalla_parametros_sanidad
 
 COLOR_PRINCIPAL = "blue" #color del fondo
 COLOR_TEXTO = "white" #color del texto
@@ -47,7 +47,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         on_click=lambda e: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario)
     )
     boton_parametros_sanidad = crear_boton("Consultar parámetros de sanidad", ft.Icons.HEALTH_AND_SAFETY, #funcionalidad boton Consultar parámetros de sanidad
-        # on_click=lambda e: mostrar_pantalla_parametros_sanidad(page, repo, usuario)
+        on_click=lambda e: mostrar_pantalla_parametros_sanidad(page, repo, usuario)
     )
     boton_cerrar_sesion = crear_boton("Cerrar sesión", ft.Icons.LOGOUT, #funcionalidad boton cerrar sesión
         on_click=lambda e: mostrar_pantalla_login(page, repo)
