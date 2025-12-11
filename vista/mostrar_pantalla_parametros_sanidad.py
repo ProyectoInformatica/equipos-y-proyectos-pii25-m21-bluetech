@@ -19,7 +19,9 @@ def guardar_valores(data):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-# ---------------------- PANTALLA PRINCIPAL ---------------------- #
+# =====================================================================
+#  PANTALLA ADMIN: CONSULTAR / EDITAR PARÁMETROS DE SANIDAD
+# =====================================================================
 
 def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
 
@@ -99,11 +101,13 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
 
     # ------------------- CREACIÓN DE TARJETAS DE DATOS -------------------
 
+    # Temperatura y humedad
     for categoria in ("temperatura", "humedad"):
         info = datos[categoria]
 
         tarjetas.append(
             ft.Container(
+                width=650,                         # mismo ancho para todas
                 bgcolor="white",
                 padding=15,
                 border_radius=10,
@@ -133,10 +137,12 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
             )
         )
 
+    # Calidad del aire (subparámetros)
     calidad = datos["calidad_aire"]
     for subparam, info in calidad.items():
         tarjetas.append(
             ft.Container(
+                width=650,                         # mismo ancho para todas
                 bgcolor="white",
                 padding=15,
                 border_radius=10,
@@ -173,6 +179,146 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
         color="white",
         style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
         on_click=lambda e: mostrar_pantalla_menu_admin(page, repo, usuario),
+    )
+
+    # ---------------------- TARJETA CONTENEDORA ----------------------
+
+    tarjeta = ft.Container(
+        width=750,
+        height=600,
+        padding=30,
+        bgcolor="white",
+        border_radius=15,
+        shadow=ft.BoxShadow(blur_radius=10, color="grey"),
+        content=ft.Column(
+            spacing=25,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
+            controls=[
+                ft.Text(
+                    "🔬 Parámetros de Sanidad",
+                    size=28,
+                    weight="bold",
+                    color=COLOR_PRINCIPAL,
+                ),
+                ft.Text(
+                    f"Usuario autenticado: {usuario.nombre_usuario}",
+                    size=14,
+                    italic=True,
+                    color="grey",
+                ),
+                ft.Divider(),
+                ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        controls=tarjetas,
+                        spacing=20,
+                        scroll=ft.ScrollMode.AUTO,
+                    ),
+                ),
+                ft.Divider(),
+                boton_volver,
+            ],
+        ),
+    )
+
+    layout = ft.Stack(
+        expand=True,
+        controls=[
+            ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=tarjeta,
+            ),
+        ],
+    )
+
+    page.add(layout)
+    page.update()
+
+
+# =====================================================================
+#  PANTALLA TRABAJADOR: SOLO CONSULTAR PARÁMETROS (SIN EDITAR)
+# =====================================================================
+
+def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario):
+
+    from vista.menu_trabajador_view import mostrar_pantalla_menu_trabajador
+
+    page.clean()
+
+    datos = cargar_valores()
+    tarjetas = []
+
+    # ------------------- TARJETAS SOLO LECTURA -------------------
+
+    # Temperatura y humedad
+    for categoria in ("temperatura", "humedad"):
+        info = datos.get(categoria, {})
+
+        tarjetas.append(
+            ft.Container(
+                width=650,                         # mismo ancho que en admin
+                bgcolor="white",
+                padding=15,
+                border_radius=10,
+                shadow=ft.BoxShadow(blur_radius=8, color="grey"),
+                margin=ft.margin.symmetric(horizontal=10, vertical=10),
+                content=ft.Column(
+                    controls=[
+                        ft.Text(
+                            f"{'🌡️' if categoria == 'temperatura' else '💧'} {categoria.capitalize()}",
+                            size=20,
+                            weight="bold",
+                            color=COLOR_PRINCIPAL,
+                        ),
+                        ft.Text(
+                            f"Rango: {info.get('min')} - {info.get('max')} {info.get('unidad')}"
+                        ),
+                        ft.Text(info.get("descripcion", ""), italic=True),
+                        # SIN botón de editar (solo consulta)
+                    ]
+                ),
+            )
+        )
+
+    # Calidad del aire
+    calidad = datos.get("calidad_aire", {})
+    for subparam, info in calidad.items():
+        tarjetas.append(
+            ft.Container(
+                width=650,                         # mismo ancho
+                bgcolor="white",
+                padding=15,
+                border_radius=10,
+                shadow=ft.BoxShadow(blur_radius=8, color="grey"),
+                margin=ft.margin.symmetric(horizontal=10, vertical=10),
+                content=ft.Column(
+                    controls=[
+                        ft.Text(
+                            f"🫁 {subparam}",
+                            size=20,
+                            weight="bold",
+                            color=COLOR_PRINCIPAL,
+                        ),
+                        ft.Text(f"Máximo: {info.get('max')} {info.get('unidad')}"),
+                        ft.Text(info.get("descripcion", ""), italic=True),
+                        # SIN botón de editar
+                    ]
+                ),
+            )
+        )
+
+    # ------------------------- BOTÓN VOLVER -------------------------
+
+    boton_volver = ft.ElevatedButton(
+        text="Volver al menú",
+        icon=ft.Icons.ARROW_BACK,
+        bgcolor=COLOR_PRINCIPAL,
+        color="white",
+        style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=10)),
+        on_click=lambda e: mostrar_pantalla_menu_trabajador(page, repo, usuario),
     )
 
     # ---------------------- TARJETA CONTENEDORA ----------------------
