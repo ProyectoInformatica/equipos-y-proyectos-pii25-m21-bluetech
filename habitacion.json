@@ -29,6 +29,21 @@
             "libre",
             "ocupado",
             "libre"
+        ],
+        "tipo_sala": [
+            "S.aislamiento",
+            "S.hospitalizacion",
+            "S.cuidados_intensivos(UCI)",
+            "S.aislamiento",
+            "S.hospitalizacion",
+            "S.espera",
+            "S.hospitalizacion",
+            "S.aislamiento",
+            "S.aislamiento",
+            "S.urgencias",
+            "S.recuperacion",
+            "S.aislamiento",
+            "S.recuperacion"
         ]
     }
 }
