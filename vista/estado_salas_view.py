@@ -8,26 +8,54 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
     from vista.menu_admin_view import mostrar_pantalla_menu_admin
     from vista.menu_trabajador_view import mostrar_pantalla_menu_trabajador
 
+    # ---------------- CONFIGURACIÓN PÁGINA ----------------
     page.title = "Estado de salas"
     page.window_width = 1000
     page.window_height = 600
     page.window_resizable = True
     page.clean()
 
+    # ---------------- CARGAR JSON ----------------
     def cargar_datos():
         with open("habitacion.json", "r") as archivo:
             return json.load(archivo)
 
     datos = cargar_datos()
 
-    titulo = ft.Text("🏨 Estado y gestión de salas", size=26, weight="bold", color=COLOR_PRINCIPAL)
+    # ---------------- COMPONENTES ----------------
+    titulo = ft.Text(
+        "🏨 Estado y gestión de salas",
+        size=26,
+        weight="bold",
+        color=COLOR_PRINCIPAL
+    )
+
     resultado = ft.Text("", size=18)
+
     input_id = ft.TextField(label="ID habitación", width=200)
 
     boton_cambiar = ft.ElevatedButton("Cambiar estado", disabled=True)
 
-    lista_salas = ft.ListView(expand=True, spacing=10, padding=10)
+    boton_verificar = ft.ElevatedButton(
+        "Verificar",
+        icon=ft.Icons.SEARCH
+    )
 
+    boton_volver = ft.ElevatedButton(
+        "Volver al menú",
+        icon=ft.Icons.ARROW_BACK,
+        bgcolor="grey",
+        color="white"
+    )
+
+    # ---------------- LISTA DE SALAS ----------------
+    lista_salas = ft.ListView(
+        expand=True,
+        spacing=10,
+        padding=10
+    )
+
+    # ---------------- FUNCIONES ----------------
     def refrescar_lista():
         lista_salas.controls.clear()
         for i, id_hab in enumerate(datos["habitaciones"]["id_habitacion"]):
@@ -73,6 +101,7 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
                 resultado.value = "La habitación no existe."
                 resultado.color = "red"
                 boton_cambiar.disabled = True
+
         except ValueError:
             resultado.value = "Introduce un ID válido."
             resultado.color = "red"
@@ -92,11 +121,8 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
 
         resultado.value = f"Estado actualizado: {nuevo_estado}"
         resultado.color = "green" if nuevo_estado == "libre" else "orange"
+
         refrescar_lista()
-
-    boton_cambiar.on_click = cambiar_estado
-
-    boton_verificar = ft.ElevatedButton("Verificar", icon=ft.Icons.SEARCH, on_click=verificar_estado)
 
     def volver_al_menu(e):
         if origen == "admin":
@@ -104,16 +130,15 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
         else:
             mostrar_pantalla_menu_trabajador(page, repo, usuario)
 
-    boton_volver = ft.ElevatedButton(
-        "Volver al menú",
-        icon=ft.Icons.ARROW_BACK,
-        on_click=volver_al_menu,
-        bgcolor="grey",
-        color="white"
-    )
+    # ---------------- EVENTOS ----------------
+    boton_verificar.on_click = verificar_estado
+    boton_cambiar.on_click = cambiar_estado
+    boton_volver.on_click = volver_al_menu
 
+    # ---------------- PANELES ----------------
     panel_izquierdo = ft.Container(
         width=300,
+        height=520,  # 👈 ALTURA REDUCIDA
         bgcolor="white",
         border_radius=15,
         padding=15,
@@ -126,12 +151,12 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
         )
     )
 
-    # 🔥 AQUÍ ESTÁ EL ARREGLO REAL
     panel_derecho = ft.Container(
+        width=600,
+        height=520,  # 👈 ALTURA REDUCIDA
         bgcolor="white",
         border_radius=15,
         padding=30,
-        width=600,
         content=ft.Column(
             [
                 titulo,
@@ -148,17 +173,26 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
         )
     )
 
+    # ---------------- LAYOUT FINAL ----------------
     layout = ft.Stack(
         expand=True,
         controls=[
-            ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(
+                src="img/fondo.png",
+                fit=ft.ImageFit.COVER,
+                expand=True
+            ),
             ft.Container(
                 expand=True,
                 padding=20,
                 content=ft.Row(
-                    [panel_izquierdo, panel_derecho],
+                    [
+                        panel_izquierdo,
+                        panel_derecho
+                    ],
                     spacing=20,
-                    alignment=ft.MainAxisAlignment.CENTER
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.START  # 🔥 CLAVE
                 )
             )
         ]
