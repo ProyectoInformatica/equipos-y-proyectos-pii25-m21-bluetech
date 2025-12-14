@@ -129,9 +129,9 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     campo_id_text = ft.TextField(label="ID de habitación a eliminar", width=200)
     mensaje_error_eliminar = ft.Text("", size=12, color="red")
 
-    # -----------------------------------------------------------------
-    # DUPLICAR PLANTAS (manteniendo funcionalidad original)
-    # -----------------------------------------------------------------
+    # -----------------
+    # GESTION PLANTAS
+    # -----------------
     def mostrar_confirmacion_duplicar(e):
         if not campo_planta.value:
             page.open(ft.SnackBar(ft.Text("⚠️ Selecciona una planta para gestionar")))
@@ -161,11 +161,55 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             actions_alignment=ft.MainAxisAlignment.END,
         )
         page.open(dlg)
+    
+    def mostrar_confirmacion_eliminar_planta(e):
+        if not campo_planta.value:
+            page.open(ft.SnackBar(ft.Text("⚠️ Selecciona una planta para gestionar")))
+            page.update()
+            return
+
+        planta = int(campo_planta.value) - 1
+        habitaciones_por_planta = 10
+        inicio = planta * habitaciones_por_planta
+        fin = inicio + habitaciones_por_planta
+
+        ids = datos["habitaciones"]["id_habitacion"]
+        ids_planta = ids[inicio:fin]
+
+        if len(ids_planta) < habitaciones_por_planta:
+            page.open(
+                ft.SnackBar(
+                    ft.Text("⚠️ La planta seleccionada no tiene 10 habitaciones completas")
+                )
+            )
+            page.update()
+            return
+
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirmación"),
+            content=ft.Text(
+                f"⚠️ ¿Quieres eliminar COMPLETAMENTE la planta {planta + 1}?\n"
+                "Se eliminarán 10 habitaciones de forma permanente."
+            ),
+            actions=[
+                ft.TextButton("Sí", on_click=lambda ev: ejecutar_eliminacion_planta(ev, dlg)),
+                ft.TextButton("No", on_click=lambda ev: cancelar_dialogo(ev, dlg)),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.open(dlg)
 
     def ejecutar_duplicacion(e, dlg):
         page.close(dlg)
         duplicar_planta()
         page.open(ft.SnackBar(ft.Text("✅ Planta duplicada correctamente")))
+        page.update()
+
+    def ejecutar_eliminacion_planta(e, dlg):
+        page.close(dlg)
+        eliminar_planta()
+        page.open(ft.SnackBar(ft.Text("✅ Planta eliminada correctamente")))
         page.update()
 
     def cancelar_dialogo(e, dlg):
@@ -195,7 +239,42 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
         actualizar_dropdown_plantas()
         reconstruir_mapa()
 
+    def eliminar_planta():
+        global datos
+        global necesita_reconstruccion
+        necesita_reconstruccion = True
+
+        if not campo_planta.value:
+            return
+
+        planta = int(campo_planta.value) - 1
+        habitaciones_por_planta = 10
+        inicio = planta * habitaciones_por_planta
+        fin = inicio + habitaciones_por_planta
+
+        ids = datos["habitaciones"]["id_habitacion"]
+        ids_planta = ids[inicio:fin]
+
+        if len(ids_planta) < habitaciones_por_planta:
+            page.open(ft.SnackBar(ft.Text("⚠️ La planta seleccionada no tiene 10 habitaciones completas")))
+            return
+
+        # ⚠️ IMPORTANTE: eliminar de atrás hacia adelante
+        for id_hab in sorted(ids_planta, reverse=True):
+            eliminar_habitacion(
+                id_hab,
+                datos,
+                cargar_sensores_humedad,
+                cargar_sensores_temperatura,
+                cargar_sensores_calidad_aire
+            )
+
+        datos = cargar_datos()
+        actualizar_dropdown_plantas()
+        reconstruir_mapa()
+
     boton_duplicar = ft.ElevatedButton(text="📑 Duplicar Planta", on_click=mostrar_confirmacion_duplicar)
+    boton_eliminar_planta = ft.ElevatedButton(text="🗑️ Eliminar Planta", on_click=mostrar_confirmacion_eliminar_planta)
 
     # -----------------------------------------------------------------
     # ELIMINAR HABITACIÓN
@@ -280,6 +359,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             ft.Divider(),
             ft.Text("⚙️ Gestión de Plantas", size=18, weight="bold"),
             ft.Row([boton_duplicar, campo_planta], spacing=5),
+            ft.Row([boton_eliminar_planta], spacing=5),
             ft.Divider(),
             ft.Row([boton_actualizar, boton_volver], spacing=10)
         ],
@@ -318,14 +398,17 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                     for clave in rangos["calidad_aire"])
         )
 
+        # Valores por defecto
+        fondo = "green"
+        borde = None
+
         if en_rango:
             fondo = "green"
-            borde = None
-        elif estado == "ocupado":
-            fondo = "red"
-            borde = ft.border.all(2, "black")
         else:
             fondo = "red"
+        if estado == "ocupado":
+            borde = ft.border.all(2, "black")
+        else:
             borde = None
 
         textos = [
@@ -500,6 +583,58 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
             hab.update()
 
+    def refrescar_colores():
+        try:
+            rangos = cargar_valores_comparativos()
+            humedad_data = cargar_sensores_humedad()["humedad"]
+            temperatura_data = cargar_sensores_temperatura()["temperatura"]
+            calidad_aire_data = cargar_sensores_calidad_aire()["calidad_aire"]
+
+            for i, id_hab in enumerate(sorted(habitaciones_ui.keys())):
+                hab = habitaciones_ui[id_hab]
+                if not hab.page:
+                    continue
+
+                estado = datos["habitaciones"]["estado"][i]
+
+                # función interna para color amarillo de valores fuera de rango
+                def color_si_fuera_rango(valor, min_val=None, max_val=None):
+                    if min_val is not None and valor < min_val:
+                        return "yellow"
+                    if max_val is not None and valor > max_val:
+                        return "yellow"
+                    return "black"
+
+                # recalcular si está todo en rango
+                en_rango = (
+                    rangos["temperatura"]["min"] <= temperatura_data[i] <= rangos["temperatura"]["max"]
+                    and rangos["humedad"]["min"] <= humedad_data[i] <= rangos["humedad"]["max"]
+                    and all(calidad_aire_data[clave][i] <= rangos["calidad_aire"][clave]["max"]
+                            for clave in rangos["calidad_aire"])
+                )
+
+                # color de fondo
+                hab.bgcolor = "green" if en_rango else "red"
+
+                # borde según estado
+                hab.border = ft.border.all(2, "black") if estado == "ocupado" else None
+
+                # actualizar colores de los textos
+                textos = hab.content.controls
+                textos[1].color = color_si_fuera_rango(temperatura_data[i], rangos["temperatura"]["min"], rangos["temperatura"]["max"])
+                textos[2].color = color_si_fuera_rango(humedad_data[i], rangos["humedad"]["min"], rangos["humedad"]["max"])
+                textos[3].color = color_si_fuera_rango(calidad_aire_data["PM2.5"][i], max_val=rangos["calidad_aire"]["PM2.5"]["max"])
+                textos[4].color = color_si_fuera_rango(calidad_aire_data["PM10"][i], max_val=rangos["calidad_aire"]["PM10"]["max"])
+                textos[5].color = color_si_fuera_rango(calidad_aire_data["CO"][i], max_val=rangos["calidad_aire"]["CO"]["max"])
+                textos[6].color = color_si_fuera_rango(calidad_aire_data["NO2"][i], max_val=rangos["calidad_aire"]["NO2"]["max"])
+                textos[7].color = color_si_fuera_rango(calidad_aire_data["CO2"][i], max_val=rangos["calidad_aire"]["CO2"]["max"])
+                textos[8].color = color_si_fuera_rango(calidad_aire_data["TVOC"][i], max_val=rangos["calidad_aire"]["TVOC"]["max"])
+
+                hab.update()
+
+        except Exception as e:
+            print("Error actualizando colores:", e)
+
     # -----------------------------------------------------------------
     # ACTUALIZACIÓN AUTOMÁTICA
     # -----------------------------------------------------------------
@@ -507,6 +642,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
         while True:
             try:
                 refrescar_datos()
+                refrescar_colores()
             except Exception as e:
                 print("Error en actualización periódica:", e)
             await asyncio.sleep(10)  # cada 10 seg
