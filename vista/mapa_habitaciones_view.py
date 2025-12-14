@@ -36,6 +36,9 @@ def cargar_valores_comparativos():
 # Habitaciones que deben parpadear
 habitaciones_parpadeo = []
 COLOR_ALERTA = "#FF8181"
+habitacion_expandida_id = None
+habitaciones_ui = {}
+necesita_reconstruccion = True
 
 # ---------------------------------------------------------------------
 # PANTALLA PRINCIPAL: MAPA EN DOS BLOQUES
@@ -63,8 +66,9 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
     def actualizar(e):
         global datos
+        global necesita_reconstruccion
+        necesita_reconstruccion = True
         datos.update(cargar_datos())
-        actualizar_mapa()
         page.open(ft.SnackBar(ft.Text("🔄 Mapa actualizado manualmente")))
         page.update()
 
@@ -106,13 +110,15 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
     def agregar_habitacion(e):
         global datos
+        global necesita_reconstruccion
+        necesita_reconstruccion = True
         estado = campo_estado.value
         tipo_sala = campo_tipo_sala.value
         nuevo_id = crear_habitacion_con_sensores(estado, tipo_sala)
         datos = cargar_datos()
         actualizar_dropdown_plantas()
-        actualizar_mapa()
         page.open(ft.SnackBar(ft.Text(f"✅ Habitación H{nuevo_id} creada correctamente")))
+        reconstruir_mapa()
         page.update()
 
     campo_planta = ft.Dropdown(label="Selecciona planta", options=[], width=200)
@@ -169,6 +175,8 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
     def duplicar_planta():
         global datos
+        global necesita_reconstruccion
+        necesita_reconstruccion = True
         if not campo_planta.value:
             return
         planta = int(campo_planta.value) - 1
@@ -180,11 +188,12 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
         for i in range(inicio, min(fin, len(ids))):
             estado_original = estados[i]
-            crear_habitacion_con_sensores(estado_original)
+            tipo_sala_original = datos["habitaciones"]["tipo_sala"][i]
+            crear_habitacion_con_sensores(estado_original, tipo_sala_original)
 
         datos.update(cargar_datos())
         actualizar_dropdown_plantas()
-        actualizar_mapa()
+        reconstruir_mapa()
 
     boton_duplicar = ft.ElevatedButton(text="📑 Duplicar Planta", on_click=mostrar_confirmacion_duplicar)
 
@@ -193,6 +202,8 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     # -----------------------------------------------------------------
     def eliminar_habitacion_ui(e):
         global datos
+        global necesita_reconstruccion
+        necesita_reconstruccion = True
         mensaje_error_eliminar.value = ""
         try:
             id_eliminar = int(campo_id_text.value)
@@ -211,7 +222,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
         if ok:
             datos = cargar_datos()
             actualizar_dropdown_plantas()
-            actualizar_mapa()
+            reconstruir_mapa()
             mensaje_error_eliminar.value = ""
             page.open(ft.SnackBar(ft.Text(f"✅ Habitación H{id_eliminar} eliminada correctamente")))
         else:
@@ -261,13 +272,14 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                 ft.Text("Texto amarillo -> Datos fuera de rango", size=14),
             ], spacing=5),
             ft.Divider(),
-            ft.Text("⚙️ Panel de gestión", size=20, weight="bold"),
-            ft.Row([fila_agregar], spacing=10),
-            ft.Row([boton_eliminar_sala, campo_id_text], spacing=10),
+            ft.Text("⚙️ Panel de gestión", size=18, weight="bold"),
+            ft.Row([fila_agregar], spacing=5),
+            ft.Divider(),
+            ft.Row([boton_eliminar_sala, campo_id_text], spacing=5),
             mensaje_error_eliminar,
             ft.Divider(),
-            ft.Text("⚙️ Gestión de Plantas", size=20, weight="bold"),
-            ft.Row([boton_duplicar, campo_planta], spacing=10),
+            ft.Text("⚙️ Gestión de Plantas", size=18, weight="bold"),
+            ft.Row([boton_duplicar, campo_planta], spacing=5),
             ft.Divider(),
             ft.Row([boton_actualizar, boton_volver], spacing=10)
         ],
@@ -343,12 +355,19 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
         def toggle_expand(e):
             nonlocal bloque_abierto
+            global habitacion_expandida_id
+            id_actual = e.control.data.get("id_habitacion")
+            if id_actual is None:
+                return
+            # cerrar el anterior solo si sigue vivo
             if bloque_abierto and bloque_abierto != e.control:
-                bloque_abierto.width = 80
-                bloque_abierto.height = 120
-                for i, txt in enumerate(bloque_abierto.content.controls):
-                    txt.size = 7 if i > 0 else 8
-                bloque_abierto.update()
+                if bloque_abierto.page:
+                    bloque_abierto.width = 80
+                    bloque_abierto.height = 120
+                    for i, txt in enumerate(bloque_abierto.content.controls):
+                        txt.size = 7 if i > 0 else 8
+                    bloque_abierto.update()
+                bloque_abierto = None
 
             if e.control.width == 80:
                 e.control.width = 170
@@ -356,14 +375,17 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                 for i, txt in enumerate(textos):
                     txt.size = 16 if i > 0 else 18
                 bloque_abierto = e.control
+                habitacion_expandida_id = id_actual
             else:
                 e.control.width = 80
                 e.control.height = 120
                 for i, txt in enumerate(textos):
                     txt.size = 7 if i > 0 else 8
                 bloque_abierto = None
+                habitacion_expandida_id = None
 
-            e.control.update()
+            if e.control.page:
+                e.control.update()
 
         habitacion = ft.Container(
             content=contenido,
@@ -374,22 +396,29 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             alignment=ft.alignment.center,
             padding=3,
             on_click=toggle_expand,
-            data={"color_original": color_original}
+            data={
+                "color_original": color_original,
+                "id_habitacion": id_hab
+            }
         )
 
         if debe_parpadear:
             habitaciones_parpadeo.append(habitacion)
-
+        
+        habitaciones_ui[id_hab] = habitacion
         return habitacion
 
     # -----------------------------------------------------------------
     # ACTUALIZACIÓN DEL MAPA
     # -----------------------------------------------------------------
-    def actualizar_mapa():
-        global datos, habitaciones_parpadeo
-        datos = cargar_datos()
+    def reconstruir_mapa():
+        global datos, habitaciones_parpadeo, bloque_abierto, necesita_reconstruccion
+        necesita_reconstruccion = False
+        bloque_abierto = None
+        habitaciones_ui.clear()
         contenedor_plantas.controls.clear()
         habitaciones_parpadeo.clear()
+        datos = cargar_datos()
 
         humedad_data = cargar_sensores_humedad()["humedad"]
         temperatura_data = cargar_sensores_temperatura()["temperatura"]
@@ -442,13 +471,42 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
         page.update()
 
+    def refrescar_datos():
+        if necesita_reconstruccion:
+            reconstruir_mapa()
+            return
+
+        humedad_data = cargar_sensores_humedad()["humedad"]
+        temperatura_data = cargar_sensores_temperatura()["temperatura"]
+        calidad_aire_data = cargar_sensores_calidad_aire()["calidad_aire"]
+
+        rangos = cargar_valores_comparativos()
+
+        for i, id_hab in enumerate(sorted(habitaciones_ui.keys())):
+            hab = habitaciones_ui[id_hab]
+            if not hab.page:
+                continue
+
+            textos = hab.content.controls
+
+            textos[1].value = f"🌡️ {temperatura_data[i]}°C"
+            textos[2].value = f"💧 {humedad_data[i]}%"
+            textos[3].value = f"PM2.5: {calidad_aire_data['PM2.5'][i]}"
+            textos[4].value = f"PM10: {calidad_aire_data['PM10'][i]}"
+            textos[5].value = f"CO: {calidad_aire_data['CO'][i]}"
+            textos[6].value = f"NO2: {calidad_aire_data['NO2'][i]}"
+            textos[7].value = f"CO2: {calidad_aire_data['CO2'][i]}"
+            textos[8].value = f"TVOC: {calidad_aire_data['TVOC'][i]}"
+
+            hab.update()
+
     # -----------------------------------------------------------------
     # ACTUALIZACIÓN AUTOMÁTICA
     # -----------------------------------------------------------------
     async def actualizar_periodicamente():
         while True:
             try:
-                actualizar_mapa()
+                refrescar_datos()
             except Exception as e:
                 print("Error en actualización periódica:", e)
             await asyncio.sleep(10)  # cada 10 seg
@@ -458,14 +516,15 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     # -----------------------------------------------------------------
     async def parpadeo_alerta():
         while True:
-            for hab in habitaciones_parpadeo:
+            for hab in list(habitaciones_parpadeo):
                 hab.bgcolor = COLOR_ALERTA
                 hab.update()
             await asyncio.sleep(2)
-            for hab in habitaciones_parpadeo:
-                hab.bgcolor = hab.data["color_original"]
-                hab.update()
-            await asyncio.sleep(10) # cada 10 seg
+            for hab in list(habitaciones_parpadeo):
+                if hab.page:
+                    hab.bgcolor = hab.data["color_original"]
+                    hab.update()
+            await asyncio.sleep(6) # cada 6 seg
 
     # -----------------------------------------------------------------
     # LAYOUT PRINCIPAL
@@ -478,6 +537,6 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
     page.add(ft.Row(controls=[layout_principal], expand=True))
 
-    actualizar_mapa()
+    reconstruir_mapa()
     page.run_task(actualizar_periodicamente)
     page.run_task(parpadeo_alerta)
