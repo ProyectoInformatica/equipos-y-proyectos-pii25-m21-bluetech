@@ -5,263 +5,420 @@ import flet as ft
 from modeloBlueTech import RepositorioCredenciales
 
 
+# Esquema de IDs (petición del cliente)
+BASE_ID_TRABAJADOR = 1001
+BASE_ID_ADMIN = 2001
+
+
 def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo: RepositorioCredenciales, on_volver):
     page.controls.clear()
+    page.scroll = None
+    page.padding = 0
+    page.spacing = 0
+    page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+    page.bgcolor = None
 
     confirm_add = {"active": False, "data": None}
     confirm_del = {"active": False, "id": None}
 
-    # Mensajes locales para cada sección
-    msg_add = ft.Text("", size=15, weight="bold", text_align="center")
-    msg_del = ft.Text("", size=15, weight="bold", text_align="center")
+    # Mensajes por bloque
+    msg_add = ft.Text("", size=14, weight="bold", text_align="center")
+    msg_del = ft.Text("", size=14, weight="bold", text_align="center")
 
-    # === AÑADIR USUARIO ===
-    campo_nombre = ft.TextField(label="Nombre", width=380)
-    campo_apellidos = ft.TextField(label="Apellidos", width=380)
-    campo_login = ft.TextField(label="Usuario (login)", width=380)
-    campo_pass = ft.TextField(label="Contraseña", password=True, can_reveal_password=True, width=380)
+    # ------------------- helpers JSON -------------------
+    def _ruta_usuarios():
+        return getattr(repo, "ruta_usuarios", "usuarios.json")
+
+    def _leer_json():
+        try:
+            with open(_ruta_usuarios(), "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return {"usuarios": []}
+            if not isinstance(data.get("usuarios"), list):
+                data["usuarios"] = []
+            return data
+        except FileNotFoundError:
+            return {"usuarios": []}
+
+    def _escribir_json(data: dict):
+        with open(_ruta_usuarios(), "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+
+    def _validar_ids_migrados(data: dict) -> bool:
+        """
+        Devuelve True si parece migrado:
+          - trabajador: id >= 1001
+          - administrador: id >= 2001
+        Si detecta IDs antiguos, devuelve False.
+        """
+        for u in data.get("usuarios", []):
+            if not isinstance(u, dict):
+                continue
+            rol = (u.get("rol") or "").lower()
+            uid = u.get("id_usuario")
+            if not isinstance(uid, int):
+                continue
+            if rol == "trabajador" and uid < BASE_ID_TRABAJADOR:
+                return False
+            if rol == "administrador" and uid < BASE_ID_ADMIN:
+                return False
+        return True
+
+    def _base_id_por_rol(rol: str) -> int:
+        return BASE_ID_TRABAJADOR if (rol or "").lower() == "trabajador" else BASE_ID_ADMIN
+
+    def _siguiente_id_disponible(data: dict, rol: str) -> int:
+        """
+        Devuelve el ID libre más pequeño para el rol, empezando en:
+          - trabajador: 1001
+          - administrador: 2001
+        Reutiliza huecos.
+        """
+        rol = (rol or "").lower()
+        base = _base_id_por_rol(rol)
+        usados = set()
+
+        for u in data.get("usuarios", []):
+            if not isinstance(u, dict):
+                continue
+            if (u.get("rol") or "").lower() != rol:
+                continue
+            uid = u.get("id_usuario")
+            if isinstance(uid, int):
+                usados.add(uid)
+
+        candidato = base
+        while candidato in usados:
+            candidato += 1
+        return candidato
+
+    # --- NUEVO: aviso + bloqueo si no está migrado ---
+    AVISO_MIGRACION = "⚠️ IDs sin migrar. Actualiza usuarios.json a trabajadores 1001+ y admins 2001+."
+
+    def _comprobar_migracion_y_bloquear() -> bool:
+        """
+        Si NO está migrado:
+          - muestra aviso
+          - resetea confirmaciones
+          - devuelve False (para bloquear acciones)
+        Si está migrado:
+          - limpia aviso si estaba
+          - devuelve True
+        """
+        data = _leer_json()
+        ok = _validar_ids_migrados(data)
+
+        if not ok:
+            confirm_add["active"] = False
+            confirm_add["data"] = None
+            confirm_del["active"] = False
+            confirm_del["id"] = None
+
+            msg_del.value = AVISO_MIGRACION
+            msg_del.color = "orange"
+            return False
+
+        # si estaba el aviso, lo limpiamos
+        if (msg_del.value or "").startswith("⚠️"):
+            msg_del.value = ""
+        return True
+
+    # =================== CONTROLES (compactados) ===================
+    W_LEFT = 420
+    W_HALF = 205
+
+    campo_nombre = ft.TextField(label="Nombre", width=W_HALF)
+    campo_apellidos = ft.TextField(label="Apellidos", width=W_HALF)
+
+    campo_login = ft.TextField(label="Usuario (login)", width=W_HALF)
+    campo_pass = ft.TextField(label="Contraseña temporal", password=True, can_reveal_password=True, width=W_HALF)
+
     dropdown_rol = ft.Dropdown(
         label="Rol",
-        width=380,
+        width=W_LEFT,
         value="trabajador",
-        options=[ft.dropdown.Option("trabajador"), ft.dropdown.Option("administrador")]
+        options=[ft.dropdown.Option("trabajador"), ft.dropdown.Option("administrador")],
     )
+
     btn_add = ft.ElevatedButton(
         "Añadir usuario",
         icon=ft.Icons.PERSON_ADD,
         bgcolor="#1565c0",
         color="white",
-        width=380,
-        height=52
+        width=W_LEFT,
+        height=52,
     )
 
-    # === ELIMINAR USUARIO ===
     campo_id = ft.TextField(
         label="ID del usuario a eliminar",
-        width=320,
+        width=W_LEFT,
         keyboard_type=ft.KeyboardType.NUMBER,
-        text_align="center"
+        text_align="center",
     )
+
     btn_del = ft.ElevatedButton(
         "Eliminar usuario",
         icon=ft.Icons.DELETE_FOREVER,
         bgcolor="#d32f2f",
         color="white",
-        width=320,
-        height=52
+        width=W_LEFT,
+        height=52,
     )
 
-    # === LISTADO ===
-    listado = ft.Column(scroll=ft.ScrollMode.AUTO, height=380)
-    cont_listado = ft.Container(
-        content=listado,
-        bgcolor="#f8fbff",
-        padding=20,
-        border_radius=15,
-        border=ft.border.all(1, "#bbdefb")
-    )
-
+    # Botón volver pequeño arriba a la izquierda (MISMO DISEÑO)
     btn_volver = ft.ElevatedButton(
         "Volver al menú",
         icon=ft.Icons.ARROW_BACK_IOS_NEW,
         bgcolor="#1565c0",
         color="white",
-        width=380,
-        height=55
+        width=150,
+        height=40,
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=10),
+            padding=ft.padding.symmetric(horizontal=12, vertical=10),
+            text_style=ft.TextStyle(size=13, weight="w600"),
+        ),
     )
 
-    # =================== REFRESCAR LISTADO ===================
+    # =================== LISTAS (scroll interno) ===================
+    listado_trab = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
+    listado_admin = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
+
+    cont_listado_trab = ft.Container(
+        content=listado_trab,
+        bgcolor="#f8fbff",
+        padding=16,
+        border_radius=15,
+        border=ft.border.all(1, "#bbdefb"),
+        width=520,
+        expand=2,
+    )
+
+    cont_listado_admin = ft.Container(
+        content=listado_admin,
+        bgcolor="#fff7f7",
+        padding=16,
+        border_radius=15,
+        border=ft.border.all(1, "#ffcdd2"),
+        width=520,
+        expand=1,
+    )
+
+    # =================== REFRESCAR ===================
     def refrescar():
         repo.cargar_datos()
-        listado.controls.clear()
 
-        if not repo.usuarios:
-            listado.controls.append(
-                ft.Text(
-                    "No hay usuarios registrados",
-                    color="gray",
-                    italic=True,
-                    text_align="center"
-                )
-            )
+        # Validación (sin migrar) + aviso si hace falta
+        data = _leer_json()
+        if not _validar_ids_migrados(data):
+            if not confirm_del["active"]:
+                msg_del.value = AVISO_MIGRACION
+                msg_del.color = "orange"
         else:
-            # Orden: primero trabajadores, luego administradores, y dentro de cada bloque por ID
-            usuarios_ordenados = sorted(
-                repo.usuarios,
-                key=lambda u: (
-                    0 if (u.rol or "").lower() == "trabajador" else 1,
-                    u.id_usuario if isinstance(u.id_usuario, int) else 0,
-                ),
-            )
+            if (msg_del.value or "").startswith("⚠️"):
+                msg_del.value = ""
 
-            for u in usuarios_ordenados:
-                es_admin = (u.rol or "").lower() == "administrador"
-                rol = "Administrador" if es_admin else "Trabajador"
-                color = "#d32f2f" if es_admin else "#1565c0"
+        listado_trab.controls.clear()
+        listado_admin.controls.clear()
 
-                listado.controls.append(
+        usuarios = getattr(repo, "usuarios", []) or []
+        trabajadores = [u for u in usuarios if (u.rol or "").lower() == "trabajador"]
+        admins = [u for u in usuarios if (u.rol or "").lower() == "administrador"]
+
+        trabajadores.sort(key=lambda u: u.id_usuario if isinstance(u.id_usuario, int) else 0)
+        admins.sort(key=lambda u: u.id_usuario if isinstance(u.id_usuario, int) else 0)
+
+        if not trabajadores:
+            listado_trab.controls.append(ft.Text("No hay trabajadores registrados.", color="grey", italic=True))
+        else:
+            for u in trabajadores:
+                listado_trab.controls.append(
                     ft.Text(
-                        f"ID: {u.id_usuario} → {u.nombre_usuario} ({rol})",
+                        f"ID: {u.id_usuario} → {u.nombre_usuario} (Trabajador)",
                         size=14,
-                        weight="bold" if es_admin else "normal",
-                        color=color
+                        color="#1565c0",
                     )
                 )
+
+        if not admins:
+            listado_admin.controls.append(ft.Text("No hay administradores registrados.", color="grey", italic=True))
+        else:
+            for u in admins:
+                listado_admin.controls.append(
+                    ft.Text(
+                        f"ID: {u.id_usuario} → {u.nombre_usuario} (Administrador)",
+                        size=14,
+                        color="#d32f2f",
+                        weight="bold",
+                    )
+                )
+
         page.update()
 
     # =================== AÑADIR ===================
     def añadir(e):
         msg_add.value = ""
-        msg_del.value = ""
+
+        # BLOQUEO si no está migrado
+        if not _comprobar_migracion_y_bloquear():
+            msg_add.value = "⚠️ Acción bloqueada hasta migrar usuarios.json."
+            msg_add.color = "orange"
+            page.update()
+            return
+
+        # limpiar msg_del si no es aviso
+        if not (msg_del.value or "").startswith("⚠️"):
+            msg_del.value = ""
 
         if not all([campo_nombre.value, campo_apellidos.value, campo_login.value, campo_pass.value]):
-            msg_add.value = "Todos los campos son obligatorios"
+            msg_add.value = "Todos los campos son obligatorios."
             msg_add.color = "red"
             page.update()
             return
 
         login = campo_login.value.strip()
-        if any(u.nombre_usuario == login for u in repo.usuarios):
-            msg_add.value = "El usuario ya existe"
+        rol = (dropdown_rol.value or "").lower()
+
+        if any((u.nombre_usuario or "").strip() == login for u in repo.usuarios):
+            msg_add.value = "El usuario ya existe."
             msg_add.color = "red"
             page.update()
             return
 
-        if not confirm_add["active"]:
+        payload = {
+            "nombre": campo_nombre.value.strip(),
+            "apellidos": campo_apellidos.value.strip(),
+            "nombre_usuario": login,
+            "contrasena_hash": hashlib.sha256(campo_pass.value.encode("utf-8")).hexdigest(),
+            "rol": rol,
+
+            # NUEVO: campos de control
+            "num_registros": 0,
+            "estado": 3,
+        }
+
+        # Confirmación doble clic
+        if (not confirm_add["active"]) or (confirm_add["data"] != payload):
             confirm_add["active"] = True
-            confirm_add["data"] = {
-                "nombre": campo_nombre.value.strip(),
-                "apellidos": campo_apellidos.value.strip(),
-                "nombre_usuario": login,
-                "contrasena_hash": hashlib.sha256(campo_pass.value.encode()).hexdigest(),
-                "rol": dropdown_rol.value
-            }
-            msg_add.value = f"¿Crear usuario '{login}'? Pulsa otra vez"
+            confirm_add["data"] = payload
+            msg_add.value = f"¿Crear usuario '{login}' ({rol})? Pulsa otra vez para confirmar."
             msg_add.color = "orange"
             page.update()
             return
 
-        # Guardar en JSON
         try:
-            with open("usuarios.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = _leer_json()
 
-            lista_usuarios = data.get("usuarios", [])
-            if not isinstance(lista_usuarios, list):
-                lista_usuarios = []
+            new_id = _siguiente_id_disponible(data, rol)
+            nuevo = payload.copy()
+            nuevo["id_usuario"] = new_id
 
-            # --- calcular el ID libre más pequeño disponible PARA ESE ROL ---
-            rol_nuevo = (confirm_add["data"].get("rol") or "").lower()
+            data["usuarios"].append(nuevo)
+            _escribir_json(data)
 
-            ids_ocupados = sorted(
-                u.get("id_usuario")
-                for u in lista_usuarios
-                if (
-                    isinstance(u, dict)
-                    and isinstance(u.get("id_usuario"), int)
-                    and (u.get("rol") or "").lower() == rol_nuevo
-                )
-            )
-
-            nuevo_id = 1
-            for id_existente in ids_ocupados:
-                if id_existente == nuevo_id:
-                    nuevo_id += 1
-                elif id_existente > nuevo_id:
-                    # Hemos encontrado un hueco
-                    break
-
-            # --- crear nuevo usuario ---
-            nuevo = confirm_add["data"].copy()
-            nuevo["id_usuario"] = nuevo_id
-            lista_usuarios.append(nuevo)
-            data["usuarios"] = lista_usuarios
-
-            with open("usuarios.json", "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-
+            # reset
             for c in [campo_nombre, campo_apellidos, campo_login, campo_pass]:
                 c.value = ""
+            dropdown_rol.value = "trabajador"
+
             confirm_add["active"] = False
-            msg_add.value = f"Usuario '{login}' creado (ID: {nuevo_id})"
-            msg_add.color = "green500"
+            confirm_add["data"] = None
+
+            msg_add.value = f"Usuario '{login}' creado correctamente (ID: {new_id})."
+            msg_add.color = "#2e7d32"
+
             refrescar()
+
         except Exception as ex:
-            msg_add.value = f"Error: {ex}"
+            msg_add.value = f"Error al crear usuario: {ex}"
             msg_add.color = "red"
+
         page.update()
 
-    # =================== ELIMINAR ===================
+    # =================== ELIMINAR (admin o trabajador, sin auto-eliminación) ===================
     def eliminar(e):
         msg_add.value = ""
-        msg_del.value = ""
 
-        if not campo_id.value or not campo_id.value.isdigit():
-            msg_del.value = "ID no válido"
+        # BLOQUEO si no está migrado
+        if not _comprobar_migracion_y_bloquear():
+            page.update()
+            return
+
+        if not (msg_del.value or "").startswith("⚠️"):
+            msg_del.value = ""
+
+        raw = (campo_id.value or "").strip()
+        if not raw.isdigit():
+            msg_del.value = "Introduce un ID numérico válido."
             msg_del.color = "red"
             page.update()
             return
 
-        id_elim = int(campo_id.value)
+        id_elim = int(raw)
 
-        # Buscar SOLO un usuario TRABAJADOR con ese ID en repo.usuarios
-        usuario_trabajador = next(
-            (
-                u for u in repo.usuarios
-                if u.id_usuario == id_elim and (u.rol or "").lower() == "trabajador"
-            ),
-            None,
-        )
-
-        if usuario_trabajador is None:
-            # No hay trabajador con ese ID (o solo hay admins con ese ID)
-            msg_del.value = (
-                "No existe ningún usuario con ese ID y rol 'trabajador' "
-                "(o el usuario es administrador)."
-            )
+        # Restricción: no eliminar el usuario logueado
+        if hasattr(usuario, "id_usuario") and usuario.id_usuario == id_elim:
+            msg_del.value = "No puedes eliminar tu propio usuario (administrador conectado)."
             msg_del.color = "red"
+            confirm_del["active"] = False
+            confirm_del["id"] = None
             page.update()
             return
 
-        if not confirm_del["active"] or confirm_del["id"] != id_elim:
+        # Debe existir
+        existe = any(u.id_usuario == id_elim for u in repo.usuarios)
+        if not existe:
+            msg_del.value = "Usuario no encontrado."
+            msg_del.color = "red"
+            confirm_del["active"] = False
+            confirm_del["id"] = None
+            page.update()
+            return
+
+        # Confirmación doble clic
+        if (not confirm_del["active"]) or (confirm_del["id"] != id_elim):
             confirm_del["active"] = True
             confirm_del["id"] = id_elim
-            msg_del.value = (
-                f"¿Eliminar usuario ID {id_elim}? Pulsa otra vez "
-                "(solo se eliminarán usuarios con rol 'trabajador')."
-            )
+            msg_del.value = f"¿Eliminar usuario ID {id_elim}? Pulsa otra vez para confirmar."
             msg_del.color = "orange"
             page.update()
             return
 
-        # Eliminar del JSON (solo trabajador, no admins con el mismo ID)
         try:
-            with open("usuarios.json", "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = _leer_json()
+            antes = len(data.get("usuarios", []))
 
-            usuarios_json = data.get("usuarios", [])
-            nueva_lista = []
+            data["usuarios"] = [
+                u for u in data.get("usuarios", [])
+                if not (isinstance(u, dict) and u.get("id_usuario") == id_elim)
+            ]
 
-            for u in usuarios_json:
-                mismo_id = u.get("id_usuario") == id_elim
-                rol_json = (u.get("rol") or "").lower()
-                # Conservamos administradores u otros roles aunque compartan ID
-                if not (mismo_id and rol_json == "trabajador"):
-                    nueva_lista.append(u)
+            despues = len(data.get("usuarios", []))
+            if despues == antes:
+                msg_del.value = "Usuario no encontrado en el archivo."
+                msg_del.color = "red"
+                confirm_del["active"] = False
+                confirm_del["id"] = None
+                page.update()
+                return
 
-            data["usuarios"] = nueva_lista
-
-            with open("usuarios.json", "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
+            _escribir_json(data)
 
             campo_id.value = ""
             confirm_del["active"] = False
-            msg_del.value = f"Usuario ID {id_elim} eliminado"
-            msg_del.color = "green500"
+            confirm_del["id"] = None
+
+            msg_del.value = f"Usuario ID {id_elim} eliminado correctamente."
+            msg_del.color = "#2e7d32"
+
             refrescar()
+
         except Exception as ex:
-            msg_del.value = f"Error: {ex}"
+            msg_del.value = f"Error al eliminar: {ex}"
             msg_del.color = "red"
+
         page.update()
 
     # =================== EVENTOS ===================
@@ -269,54 +426,100 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo: RepositorioC
     btn_del.on_click = eliminar
     btn_volver.on_click = lambda e: on_volver()
 
-    # =================== LAYOUT FINAL ===================
+    # =================== LAYOUT (MISMO DISEÑO) ===================
+    bloque_añadir = ft.Column(
+        [
+            ft.Text("Añadir usuario", weight="bold", size=20, color="#1565c0"),
+            ft.Row([campo_nombre, campo_apellidos], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            ft.Row([campo_login, campo_pass], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            dropdown_rol,
+            btn_add,
+            msg_add,
+        ],
+        spacing=10,
+    )
+
+    bloque_eliminar = ft.Column(
+        [
+            ft.Text("Eliminar usuario", weight="bold", size=20, color="#d32f2f"),
+            campo_id,
+            btn_del,
+            msg_del,
+        ],
+        spacing=10,
+    )
+
+    panel_izquierdo = ft.Container(
+        width=W_LEFT,
+        content=ft.Column(
+            [
+                bloque_añadir,
+                ft.Divider(height=1, color="#e0e0e0"),
+                bloque_eliminar,
+            ],
+            spacing=18,
+        ),
+    )
+
+    panel_derecho = ft.Container(
+        expand=True,
+        content=ft.Column(
+            [
+                cont_listado_trab,
+                ft.Container(height=16),
+                cont_listado_admin,
+            ],
+            spacing=0,
+            expand=True,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    cuerpo = ft.Row(
+        [
+            panel_izquierdo,
+            ft.Container(width=35),
+            panel_derecho,
+        ],
+        alignment=ft.MainAxisAlignment.START,
+        vertical_alignment=ft.CrossAxisAlignment.START,
+        expand=True,
+    )
+
+    tarjeta_blanca = ft.Container(
+        width=1120,
+        height=700,
+        padding=35,
+        bgcolor="white",
+        border_radius=20,
+        shadow=ft.BoxShadow(blur_radius=30, color="#30000000"),
+        content=ft.Column(
+            [
+                ft.Row([btn_volver], alignment=ft.MainAxisAlignment.START),
+                ft.Text(
+                    "Gestión de usuarios - Administrador",
+                    size=30,
+                    weight="bold",
+                    color="#1565c0",
+                    text_align="center",
+                ),
+                ft.Divider(height=1, color="#e0e0e0"),
+                ft.Container(expand=True, content=cuerpo),
+            ],
+            spacing=16,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            expand=True,
+        ),
+    )
+
     page.add(
-        ft.Stack([
-            ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-
-            ft.Container(
-                expand=True,
-                alignment=ft.alignment.center,
-                content=ft.Container(
-                    width=1000,
-                    padding=50,
-                    bgcolor="white",
-                    border_radius=20,
-                    shadow=ft.BoxShadow(blur_radius=30, color="#30000000"),
-                    content=ft.Column([
-                        ft.Text("Gestión de usuarios - Administrador", size=32, weight="bold", color="#1565c0", text_align="center"),
-                        ft.Text(f"Conectado como: {usuario.nombre_usuario}", color="#555", size=15, italic=True),
-                        ft.Divider(height=1, color="#e0e0e0"),
-
-                        ft.Text("Añadir nuevo usuario", weight="bold", size=22, color="#1565c0"),
-                        campo_nombre, campo_apellidos, campo_login, campo_pass, dropdown_rol,
-                        ft.Container(height=12),
-                        btn_add,
-                        msg_add,                                 # Mensaje justo debajo del botón
-
-                        ft.Divider(height=1, color="#e0e0e0", thickness=0.8),
-
-                        ft.Text("Eliminar usuario por ID", weight="bold", size=22, color="#d32f2f"),
-                        ft.Container(height=15),
-                        campo_id,
-                        ft.Container(height=12),
-                        btn_del,
-                        msg_del,                                 # Mensaje justo debajo del botón rojo
-
-                        ft.Divider(height=1, color="#e0e0e0", thickness=0.8),
-
-                        ft.Text("Listado de usuarios registrados:", weight="bold", size=18, color="#1565c0"),
-                        cont_listado,
-
-                        ft.Container(height=30),
-                        btn_volver
-                    ],
-                    scroll=ft.ScrollMode.AUTO,
-                    horizontal_alignment="center",
-                    spacing=20)
-                )
-            )
-        ], expand=True)
+        ft.Stack(
+            [
+                ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
+                ft.Container(expand=True, alignment=ft.alignment.center, content=tarjeta_blanca),
+            ],
+            expand=True,
+        )
     )
 
     refrescar()
