@@ -1,124 +1,177 @@
 {
     "usuarios": [
         {
-            "id_usuario": 1,
+            "id_usuario": 1001,
             "nombre": "Laura",
             "apellidos": "García Gallardo",
             "nombre_usuario": "lgarcia",
             "contraseña": "Laura1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 2,
+            "id_usuario": 1002,
             "nombre": "Carlos",
             "apellidos": "Fernández Expósito",
             "nombre_usuario": "cfernandez",
             "contraseña": "Carlos1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 5,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 3,
+            "id_usuario": 1003,
             "nombre": "María",
             "apellidos": "Sánchez García",
             "nombre_usuario": "msanchez",
             "contraseña": "Maria1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 2,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 4,
-            "nombre": "Andrés",
-            "apellidos": "Santos Fernández",
-            "nombre_usuario": "asantos",
-            "contraseña": "Andres1234",
-            "rol": "trabajador"
-        },
-        {
-            "id_usuario": 5,
+            "id_usuario": 1005,
             "nombre": "Elena",
             "apellidos": "Torres López",
             "nombre_usuario": "etorres",
             "contraseña": "Elena1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 6,
+            "id_usuario": 1006,
             "nombre": "Javier",
             "apellidos": "Ramírez Gómez",
             "nombre_usuario": "jramirez",
             "contraseña": "Javier1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 7,
+            "id_usuario": 1007,
             "nombre": "Lucía",
             "apellidos": "Martínez González",
             "nombre_usuario": "lmartinez",
             "contraseña": "Lucia123",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 1,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 8,
+            "id_usuario": 1008,
             "nombre": "David",
             "apellidos": "Serrano Sánchez",
             "nombre_usuario": "dserrano",
             "contraseña": "David1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 9,
+            "id_usuario": 1009,
             "nombre": "Sara",
             "apellidos": "Castro Gómez",
             "nombre_usuario": "scastro",
             "contraseña": "Sara1234",
-            "rol": "trabajador"
+            "rol": "trabajador",
+            "num_registros": 0,
+            "estado": 3,
+            "contrasena_hash": "727b72b90d4ab705ac2c6b35ef02c5ff791006c46560568471b9068c247c31b8"
         },
         {
-            "id_usuario": 10,
-            "nombre": "Pablo",
-            "apellidos": "Vega Pérez",
-            "nombre_usuario": "pvega",
-            "contraseña": "Pablo1234",
-            "rol": "trabajador"
-        },
-        {
-            "id_usuario": 1,
+            "id_usuario": 2001,
             "nombre": "Jorge",
             "apellidos": "García González",
             "nombre_usuario": "jgarcia",
             "contraseña": "JorgeAdmin123",
-            "rol": "administrador"
+            "rol": "administrador",
+            "num_registros": 0,
+            "estado": 3,
+            "contrasena_hash": "beb56d7e796e8c64e494019b511378c3d26146badac38f02dfe2c1d944b44da0"
         },
         {
-            "id_usuario": 2,
+            "id_usuario": 2002,
             "nombre": "Ana",
             "apellidos": "Morales Díaz",
             "nombre_usuario": "amorales",
             "contraseña": "AnaAdmin123",
-            "rol": "administrador"
+            "rol": "administrador",
+            "num_registros": 9,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 3,
+            "id_usuario": 2003,
             "nombre": "Luis",
             "apellidos": "Fernández Vega",
             "nombre_usuario": "lfernandez",
             "contraseña": "LuisAdmin123",
-            "rol": "administrador"
+            "rol": "administrador",
+            "num_registros": 2,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 4,
+            "id_usuario": 2004,
             "nombre": "Carmen",
             "apellidos": "Serrano López",
             "nombre_usuario": "cserrano",
             "contraseña": "CarmenAdmin123",
-            "rol": "administrador"
+            "rol": "administrador",
+            "num_registros": 1,
+            "estado": 1,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
-            "id_usuario": 5,
+            "id_usuario": 2005,
             "nombre": "Miguel",
             "apellidos": "Ruiz Herrera",
             "nombre_usuario": "mruiz",
             "contraseña": "MiguelAdmin123",
-            "rol": "administrador"
+            "rol": "administrador",
+            "num_registros": 2,
+            "estado": 2,
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
+        },
+        {
+            "nombre": "Pablo",
+            "apellidos": "Vega",
+            "nombre_usuario": "pvega",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "trabajador",
+            "num_registros": 2,
+            "estado": 2,
+            "id_usuario": 1010
+        },
+        {
+            "nombre": "Andrés",
+            "apellidos": "Santos Fernández",
+            "nombre_usuario": "asantos",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "trabajador",
+            "num_registros": 1,
+            "estado": 2,
+            "id_usuario": 1004
+        },
+        {
+            "nombre": "Elsa",
+            "apellidos": "García",
+            "nombre_usuario": "elsag",
+            "contrasena_hash": "373e3024093a806e0ab0ee5e516d244f80b7848470481e425fa79adaaa7e6354",
+            "rol": "trabajador",
+            "num_registros": 0,
+            "estado": 3,
+            "id_usuario": 1011
         }
     ]
 }
