@@ -24,7 +24,7 @@ class Rol:
 
 # Clase que representa un usuario del sistema (como administrador o trabajador).
 class Usuario:
-    def __init__(self, id_usuario, nombre_usuario, contrasena_hash, rol):
+    def __init__(self, id_usuario, nombre_usuario, contrasena_hash, rol, num_registros=0, estado=1):
         # Constructor que inicializa los atributos básicos del usuario.
         # En este caso, 'contrasena_hash' almacena el hash SHA-256 de la contraseña,
         # no la contraseña en texto plano.
@@ -32,6 +32,10 @@ class Usuario:
         self.nombre_usuario = nombre_usuario
         self.contrasena_hash = contrasena_hash
         self.rol = rol
+
+        # >>> CAMBIO MÍNIMO: atributos necesarios para el control de acceso / cambio de contraseña
+        self.num_registros = num_registros
+        self.estado = estado
 
     def verificar_contrasena(self, contrasena_ingresada):
         # Compara la contraseña ingresada con la almacenada y devuelve True si coinciden.
@@ -158,7 +162,11 @@ class RepositorioCredenciales:
                         id_usuario=u.get("id_usuario"),
                         nombre_usuario=nombre_login,
                         contrasena_hash=contrasena_hash,
-                        rol=rol_normalizado
+                        rol=rol_normalizado,
+
+                        # >>> CAMBIO MÍNIMO: cargar control de estado/contador desde JSON (o defaults)
+                        num_registros=u.get("num_registros", 0),
+                        estado=u.get("estado", 1)
                     )
 
                     # Se agrega el usuario a la lista general de usuarios (admins y trabajadores).
@@ -173,30 +181,113 @@ class RepositorioCredenciales:
         if f2 is not None:
             f2.close()  # Se cierra el archivo si fue abierto correctamente.
 
-    def verificar_login(self, nombre_usuario, contrasena, rol):
-        # Método que verifica si un usuario existe y su contraseña es correcta.
-        # Ahora utiliza el hash de la contraseña en lugar de texto plano.
-        # Se comprueba también que el rol del usuario coincida con el rol seleccionado.
-        encontrado = None
-        i = 0
-        total = len(self.usuarios)
+    def verificar_login(self, usuario, contrasena):
+        """
+        Verifica credenciales sin rol explícito.
+        El rol se obtiene del JSON.
+        """
+        hash_pass = hashlib.sha256(contrasena.encode()).hexdigest()
 
-        # Se recorre la lista completa de usuarios (administradores y trabajadores).
-        while i < total and encontrado is None:
-            u = self.usuarios[i]
-
+        for u in self.usuarios:
             if (
-                u.nombre_usuario == nombre_usuario
-                and u.rol == rol
-                and u.verificar_contrasena(contrasena)
+                u.nombre_usuario == usuario
+                and u.contrasena_hash == hash_pass
             ):
-                # Si coincide el login, el rol y la contraseña, se guarda el usuario.
-                encontrado = u
+                return u
+
+        return None
+
+
+    def guardar_cambios(self):
+        # Guarda en el JSON los cambios de credenciales/estado realizados sobre los objetos Usuario.
+        # Se actualizan solo los campos necesarios: contrasena_hash, num_registros, estado (y campos básicos si existieran).
+        datos = None
+        f = None
+        try:
+            f = open(self.ruta_usuarios, "r", encoding="utf-8")
+            datos = json.load(f)
+        except FileNotFoundError:
+            print("No se encontró el archivo de usuarios:", self.ruta_usuarios)
+            return False
+        except Exception as e:
+            print("Error al leer el archivo de usuarios:", str(e))
+            return False
+        finally:
+            if f is not None:
+                f.close()
+
+        if not isinstance(datos, dict):
+            print("El formato del archivo de usuarios no es válido.")
+            return False
+
+        lista = datos.get("usuarios", [])
+        if not isinstance(lista, list):
+            print("La estructura del archivo de usuarios no es válida.")
+            return False
+
+        i = 0
+        total = len(lista)
+        while i < total:
+            entrada = lista[i]
+            if isinstance(entrada, dict):
+                id_json = entrada.get("id_usuario")
+                if isinstance(id_json, str) and id_json.isdigit():
+                    id_json = int(id_json)
+
+                nombre_json = entrada.get("nombre_usuario") or entrada.get("nombre")
+
+                # buscar coincidencia en memoria
+                j = 0
+                total_mem = len(self.usuarios)
+                encontrado = False
+
+                while j < total_mem and not encontrado:
+                    u_obj = self.usuarios[j]
+
+                    # Normalizar id en memoria también por si acaso
+                    id_mem = u_obj.id_usuario
+                    if isinstance(id_mem, str) and id_mem.isdigit():
+                        id_mem = int(id_mem)
+
+                    # 1) Match por id_usuario
+                    if id_json is not None and id_mem is not None and id_mem == id_json:
+                        encontrado = True
+
+                    # 2) Fallback por nombre de usuario (si el ID viniera raro)
+                    elif nombre_json is not None and isinstance(nombre_json, str):
+                        if u_obj.nombre_usuario == nombre_json:
+                            encontrado = True
+
+                    if encontrado:
+                        # Actualizar solo lo necesario
+                        entrada["contrasena_hash"] = u_obj.contrasena_hash
+                        entrada["num_registros"] = u_obj.num_registros
+                        entrada["estado"] = u_obj.estado
+
+                        # Mantener consistencia de nombre/rol si están presentes
+                        if "nombre_usuario" in entrada:
+                            entrada["nombre_usuario"] = u_obj.nombre_usuario
+                        if "rol" in entrada:
+                            entrada["rol"] = u_obj.rol
+
+                    j = j + 1
 
             i = i + 1
 
-        # Devuelve el objeto Usuario si fue encontrado, o None si no existe o los datos no coinciden.
-        return encontrado
+        f2 = None
+        try:
+            f2 = open(self.ruta_usuarios, "w", encoding="utf-8")
+            texto = json.dumps(datos, ensure_ascii=False, indent=4)
+            f2.write(texto)
+        except Exception as e:
+            print("Error al escribir el archivo de usuarios:", str(e))
+            return False
+        finally:
+            if f2 is not None:
+                f2.close()
+
+        return True
+
 
     def eliminar_usuario_por_id(self, id_usuario, pedir_confirmacion_por_consola=True):
         """

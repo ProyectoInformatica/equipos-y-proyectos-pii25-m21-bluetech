@@ -65,8 +65,10 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     boton_mapa = crear_boton("Mapa de habitaciones", ft.Icons.MAP,  #funcionalidad boton mapa
         on_click=lambda e: mostrar_pantalla_mapa_admin(page, repo, usuario)
     )
+
+    # Ejecuta cerrar_sesion (que pone estado=2 y guarda)
     boton_cerrar_sesion = crear_boton("Cerrar sesión", ft.Icons.LOGOUT, #funcionalidad boton cerrar sesión
-        on_click=lambda e: mostrar_pantalla_login(page, repo)
+        on_click=lambda e: cerrar_sesion(e)
     )
 
     #contenedor de contenido principal
@@ -127,3 +129,8 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     #añadir información nueva a la pantalla
     page.add(layout)
     page.update()
+
+    def cerrar_sesion(e):
+        usuario.estado = 2
+        repo.guardar_cambios()
+        mostrar_pantalla_login(page, repo)

@@ -376,3 +376,7 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
 
     page.add(layout)
     page.update()
+
+def mostrar_pantalla_parametros_sanidad_admin(page, repo, usuario):
+    return mostrar_pantalla_parametros_sanidad(page, repo, usuario)
+
