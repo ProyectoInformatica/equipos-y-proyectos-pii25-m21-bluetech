@@ -4,6 +4,7 @@ from vista.estado_salas_view import mostrar_pantalla_estado_salas
 from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
 from vista.mapa_habitaciones_view import mostrar_pantalla_mapa_admin
 from vista.mostrar_pantalla_parametros_sanidad import mostrar_pantalla_parametros_sanidad
+from vista.exportar_metricas_view import mostrar_pantalla_exportar_metricas
 
 COLOR_PRINCIPAL = "blue" #color del fondo 
 COLOR_TEXTO = "white" #color del texto
@@ -41,6 +42,13 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     def volver_desde_gestion():
         mostrar_pantalla_menu_admin(page, repo, usuario)
 
+    def ir_a_exportar_metricas(e):
+        mostrar_pantalla_exportar_metricas(
+            page=page,
+            usuario=usuario,
+            on_volver=volver_desde_gestion
+        )
+
     def ir_a_gestion_usuarios(e):
         mostrar_pantalla_gestion_usuarios(
             page=page,
@@ -64,6 +72,10 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     )
     boton_mapa = crear_boton("Mapa de habitaciones", ft.Icons.MAP,  #funcionalidad boton mapa
         on_click=lambda e: mostrar_pantalla_mapa_admin(page, repo, usuario)
+    )
+
+    boton_exportar = crear_boton("Exportar Métricas", ft.Icons.DOWNLOAD,
+        on_click=ir_a_exportar_metricas
     )
 
     # Ejecuta cerrar_sesion (que pone estado=2 y guarda)
@@ -96,6 +108,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
             boton_cambiar_estado,
             boton_parametros_sanidad,
             boton_mapa,
+            boton_exportar,
             ft.Divider(), #linea divisora
             boton_cerrar_sesion #boton cerrar sesión
         ], 
