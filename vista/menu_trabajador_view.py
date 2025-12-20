@@ -8,6 +8,8 @@ from vista.mostrar_pantalla_parametros_sanidad import (
     mostrar_pantalla_parametros_sanidad_trabajador,
 )
 
+from vista.consumo_sensores_view import mostrar_pantalla_consumo_sensores
+
 COLOR_PRINCIPAL = "blue"  # color del fondo de los botones
 COLOR_TEXTO = "white"     # color del texto de los botones
 
@@ -77,6 +79,19 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         ),
     )
 
+    def volver_al_menu():
+        mostrar_pantalla_menu_trabajador(page, repo, usuario)
+
+    boton_consumo_sensores = crear_boton(
+        "Consumo energético (sensores)",
+        ft.Icons.ELECTRIC_BOLT,
+        on_click=lambda e: mostrar_pantalla_consumo_sensores(
+            page=page,
+            usuario=usuario,
+            on_volver=volver_al_menu,
+        ),
+    )
+
     # Ejecuta cerrar_sesion (que pone estado=2 y guarda)
     boton_cerrar_sesion = crear_boton(
         "Cerrar sesión",
@@ -115,7 +130,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
                 boton_cambiar_estado,
                 boton_mapa_habitaciones,
                 boton_parametros_sanidad,
-
+                boton_consumo_sensores,
                 ft.Divider(),  # línea divisora
                 boton_cerrar_sesion,  # botón cerrar sesión
             ],
@@ -127,7 +142,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         border_radius=15,
         shadow=ft.BoxShadow(blur_radius=10, color="grey"),
         width=600,
-        height=500,
+        height=570,
     )
 
     # toda la información que se va a introducir en la pantalla

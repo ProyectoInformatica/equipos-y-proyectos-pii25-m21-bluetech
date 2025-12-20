@@ -5,6 +5,7 @@ from vista.cambiar_estado_view import mostrar_pantalla_cambiar_estado
 from vista.mapa_habitaciones_view import mostrar_pantalla_mapa_admin
 from vista.mostrar_pantalla_parametros_sanidad import mostrar_pantalla_parametros_sanidad
 from vista.exportar_metricas_view import mostrar_pantalla_exportar_metricas
+from vista.consumo_sensores_view import mostrar_pantalla_consumo_sensores
 
 COLOR_PRINCIPAL = "blue" #color del fondo 
 COLOR_TEXTO = "white" #color del texto
@@ -78,6 +79,20 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
         on_click=ir_a_exportar_metricas
     )
 
+    def ir_a_consumo_sensores(e):
+        # Vuelve a este menú cuando el usuario pulse "Volver"
+        mostrar_pantalla_consumo_sensores(
+            page=page,
+            usuario=usuario,
+            on_volver=volver_desde_gestion,
+        )
+
+    boton_consumo_sensores = crear_boton(
+        "Consumo energético (sensores)",
+        ft.Icons.ELECTRIC_BOLT,
+        on_click=ir_a_consumo_sensores,
+    )
+
     # Ejecuta cerrar_sesion (que pone estado=2 y guarda)
     boton_cerrar_sesion = crear_boton("Cerrar sesión", ft.Icons.LOGOUT, #funcionalidad boton cerrar sesión
         on_click=lambda e: cerrar_sesion(e)
@@ -109,6 +124,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
             boton_parametros_sanidad,
             boton_mapa,
             boton_exportar,
+            boton_consumo_sensores,
             ft.Divider(), #linea divisora
             boton_cerrar_sesion #boton cerrar sesión
         ], 
@@ -119,7 +135,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
         border_radius=15,
         shadow=ft.BoxShadow(blur_radius=10, color="grey"),
         width=600,
-        height=620
+        height=690
     )
 
     #toda la información que se va introducir en la pantalla
