@@ -2,7 +2,7 @@ import json
 import random
 
 #para crear habitaciones con la interfaz
-def crear_habitacion_con_sensores(estado_habitacion, tipo_sala):
+def crear_habitacion_con_sensores(estado_habitacion):
     #Realiza la lectura de la informacion de los json de habitaciones y sensores
     with open("sensores_temperatura.json", "r") as archivo:
         datos1 = json.load(archivo)
@@ -34,7 +34,6 @@ def crear_habitacion_con_sensores(estado_habitacion, tipo_sala):
     #insercción de ids en el json de sensores y habitaciones
     datos4["habitaciones"]["id_habitacion"].append(id)
     datos4["habitaciones"]["estado"].append(estado_habitacion)
-    datos4["habitaciones"].setdefault("tipo_sala", []).append(tipo_sala)
     datos1["sensores_temp"]["id_sensor"].append(id_sensor+1)
     datos2["sensores_hum"]["id_sensor"].append(id_sensor+2)
     datos3["sensores_cali_aire"]["id_sensor"].append(id_sensor+3)

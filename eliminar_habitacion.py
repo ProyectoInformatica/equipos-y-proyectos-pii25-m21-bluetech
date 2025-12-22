@@ -12,7 +12,6 @@ def eliminar_habitacion(id_eliminar, datos,
     # Eliminar de datos principales
     datos["habitaciones"]["id_habitacion"].pop(index)
     datos["habitaciones"]["estado"].pop(index)
-    datos["habitaciones"]["tipo_sala"].pop(index)
 
     # Eliminar sensores asociados
     sensores_hum = cargar_sensores_humedad()
