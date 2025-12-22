@@ -1,122 +1,202 @@
 import flet as ft
 import json
 
-COLOR_PRINCIPAL = "blue" 
+COLOR_PRINCIPAL = "blue"
 COLOR_TEXTO = "white"
 
 def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen="trabajador"):
-    #importamos archivos de vista admin y trabajador para poder regresar al menu
-    from vista.menu_admin_view import mostrar_pantalla_menu_admin 
+    from vista.menu_admin_view import mostrar_pantalla_menu_admin
     from vista.menu_trabajador_view import mostrar_pantalla_menu_trabajador
-    #Estilo por defecto de la pagina
-    page.title = "Visualización Ocupación de Salas"
-    page.window_width = 800
+
+    # ---------------- CONFIGURACIÓN PÁGINA ----------------
+    page.title = "Estado de salas"
+    page.window_width = 1000
     page.window_height = 600
     page.window_resizable = True
-    page.clean() #limpia la pagina
+    page.clean()
 
-    # Cargar datos del JSON
-    with open("habitacion.json", "r") as archivo:
-        datos = json.load(archivo)
+    # ---------------- CARGAR JSON ----------------
+    def cargar_datos():
+        with open("habitacion.json", "r") as archivo:
+            return json.load(archivo)
 
-    titulo = ft.Text("🚪 Estado de ocupación de salas", size=26, weight="bold", color=COLOR_PRINCIPAL) #título
-    subtitulo = ft.Text("Introduce el ID de la habitación para consultar su estado", size=16, italic=True, color="grey") #Subtitulo
+    datos = cargar_datos()
 
-    #caja para que el usuario introduzca el Id de la habitación
-    input_id = ft.TextField(label="ID habitación", width=200)
-    resultado = ft.Text("", size=20)
-
-    #verificar el estado de dicha habitación
-    def verificar_estado(e):
-        try:
-            id_habitacion = int(input_id.value) #almacena el id introducido
-            habitaciones = datos["habitaciones"]["id_habitacion"] 
-            estados = datos["habitaciones"]["estado"]
-
-            if id_habitacion in habitaciones: #comprueba que haya algun id que sea igual al introducido por el usuario
-                index = habitaciones.index(id_habitacion)
-                estado = estados[index] #coge el estado correspondiente al id_habitación
-                resultado.value = f"El estado actual de la sala {id_habitacion} es: {estado}" #Muestra el resultado
-
-                if estado == "libre":
-                    resultado.color = "green" #texto en verde si esta libre
-                elif estado == "ocupado":
-                    resultado.color = "orange" #texto en naranja si esta ocupado
-                else:
-                    resultado.color = "black"
-            else: #En caso de que el id sea erroneo, mensaje de error
-                resultado.value = f"La habitación con id {id_habitacion} no existe."
-                resultado.color = "red"
-        except ValueError: #en caso de no ser un número, mensaje de error
-            resultado.value = "Por favor, introduce un número válido."
-            resultado.color = "red"
-        page.update() #actualiza el estado de la pagina
-
-    #diseño del boton para verificar el id
-    boton_verificar = ft.ElevatedButton(
-        "Verificar",
-        icon=ft.Icons.SEARCH,
-        style=ft.ButtonStyle(
-            bgcolor=COLOR_PRINCIPAL,
-            color=COLOR_TEXTO,
-            padding=20,
-            shape=ft.RoundedRectangleBorder(radius=10)
-        ),
-        on_click=verificar_estado #llama a la función verificar cuando pinchas el boton
+    # ---------------- COMPONENTES ----------------
+    titulo = ft.Text(
+        "🏨 Estado y gestión de salas",
+        size=26,
+        weight="bold",
+        color=COLOR_PRINCIPAL
     )
 
-    #funcion para volver al menú correspondiente
+    resultado = ft.Text("", size=18)
+
+    input_id = ft.TextField(label="ID habitación", width=200)
+
+    boton_cambiar = ft.ElevatedButton("Cambiar estado", disabled=True)
+
+    boton_verificar = ft.ElevatedButton(
+        "Verificar",
+        icon=ft.Icons.SEARCH
+    )
+
+    boton_volver = ft.ElevatedButton(
+        "Volver al menú",
+        icon=ft.Icons.ARROW_BACK,
+        bgcolor="grey",
+        color="white"
+    )
+
+    # ---------------- LISTA DE SALAS ----------------
+    lista_salas = ft.ListView(
+        expand=True,
+        spacing=10,
+        padding=10
+    )
+
+    # ---------------- FUNCIONES ----------------
+    def refrescar_lista():
+        lista_salas.controls.clear()
+        for i, id_hab in enumerate(datos["habitaciones"]["id_habitacion"]):
+            estado = datos["habitaciones"]["estado"][i]
+            color = "green" if estado == "libre" else "orange"
+
+            lista_salas.controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Text(f"Sala {id_hab}", weight="bold"),
+                            ft.Text(estado, color=color)
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    padding=10,
+                    border_radius=8,
+                    bgcolor="#f5f5f5",
+                    on_click=lambda e, id=id_hab: seleccionar_sala(id)
+                )
+            )
+        page.update()
+
+    def seleccionar_sala(id_habitacion):
+        input_id.value = str(id_habitacion)
+        verificar_estado(None)
+
+    def verificar_estado(e):
+        try:
+            id_habitacion = int(input_id.value)
+            habitaciones = datos["habitaciones"]["id_habitacion"]
+
+            if id_habitacion in habitaciones:
+                index = habitaciones.index(id_habitacion)
+                estado = datos["habitaciones"]["estado"][index]
+
+                resultado.value = f"Estado actual de la sala {id_habitacion}: {estado}"
+                resultado.color = "green" if estado == "libre" else "orange"
+
+                boton_cambiar.disabled = False
+                boton_cambiar.data = index
+            else:
+                resultado.value = "La habitación no existe."
+                resultado.color = "red"
+                boton_cambiar.disabled = True
+
+        except ValueError:
+            resultado.value = "Introduce un ID válido."
+            resultado.color = "red"
+            boton_cambiar.disabled = True
+
+        page.update()
+
+    def cambiar_estado(e):
+        index = boton_cambiar.data
+        estado_actual = datos["habitaciones"]["estado"][index]
+        nuevo_estado = "libre" if estado_actual == "ocupado" else "ocupado"
+
+        datos["habitaciones"]["estado"][index] = nuevo_estado
+
+        with open("habitacion.json", "w") as archivo:
+            json.dump(datos, archivo, indent=4)
+
+        resultado.value = f"Estado actualizado: {nuevo_estado}"
+        resultado.color = "green" if nuevo_estado == "libre" else "orange"
+
+        refrescar_lista()
+
     def volver_al_menu(e):
-        if origen == "admin": #comprueba cual es el origen para volver al menu adecuado
+        if origen == "admin":
             mostrar_pantalla_menu_admin(page, repo, usuario)
         else:
             mostrar_pantalla_menu_trabajador(page, repo, usuario)
 
-    #Diseño del botón para volver al menú
-    boton_volver = ft.ElevatedButton(
-        "Volver al menú",
-        icon=ft.Icons.ARROW_BACK,
-        style=ft.ButtonStyle(
-            bgcolor="grey",
-            color="white",
-            padding=20,
-            shape=ft.RoundedRectangleBorder(radius=10)
-        ),
-        on_click=volver_al_menu #llama a la función volver al menu cuando pinchas el boton
-    )
+    # ---------------- EVENTOS ----------------
+    boton_verificar.on_click = verificar_estado
+    boton_cambiar.on_click = cambiar_estado
+    boton_volver.on_click = volver_al_menu
 
-    #Diseño de la caja principal
-    tarjeta_estado = ft.Container(
-        content=ft.Column(
-            [titulo, subtitulo, ft.Divider(), input_id, boton_verificar, resultado, boton_volver], #contenido del bloque 
-            spacing=15,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        ),
-        #Diseño
-        padding=30,
+    # ---------------- PANELES ----------------
+    panel_izquierdo = ft.Container(
+        width=300,
+        height=520,  # 👈 ALTURA REDUCIDA
         bgcolor="white",
         border_radius=15,
-        shadow=ft.BoxShadow(blur_radius=10, color="grey"),
-        width=600,
-        height=450
+        padding=15,
+        content=ft.Column(
+            [
+                ft.Text("📋 Salas disponibles", weight="bold", size=18),
+                ft.Divider(),
+                lista_salas
+            ]
+        )
     )
 
-    #almacena toda la información que se va a mostrar por pantalla
+    panel_derecho = ft.Container(
+        width=600,
+        height=520,  # 👈 ALTURA REDUCIDA
+        bgcolor="white",
+        border_radius=15,
+        padding=30,
+        content=ft.Column(
+            [
+                titulo,
+                ft.Divider(),
+                input_id,
+                boton_verificar,
+                resultado,
+                boton_cambiar,
+                ft.Divider(),
+                boton_volver
+            ],
+            spacing=15,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
+    )
+
+    # ---------------- LAYOUT FINAL ----------------
     layout = ft.Stack(
         expand=True,
         controls=[
-            ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(
+                src="img/fondo.png",
+                fit=ft.ImageFit.COVER,
+                expand=True
+            ),
             ft.Container(
                 expand=True,
-                alignment=ft.alignment.center,
-                content=ft.Column(
-                    controls=[tarjeta_estado],
+                padding=20,
+                content=ft.Row(
+                    [
+                        panel_izquierdo,
+                        panel_derecho
+                    ],
+                    spacing=20,
                     alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
+                    vertical_alignment=ft.CrossAxisAlignment.START  # 🔥 CLAVE
                 )
             )
         ]
     )
 
-    page.add(layout) #añade la información a mostrar
-    page.update() #actualiza la página
+    page.add(layout)
+    refrescar_lista()
