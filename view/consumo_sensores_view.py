@@ -98,18 +98,6 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
                     weight="bold",
                     color=COLOR_PRINCIPAL,
                 ),
-                ft.Row(
-                    controls=[
-                        ft.Icon(ft.Icons.BADGE, color="grey"),
-                        ft.Text(
-                            f"Usuario autenticado: {usuario.nombre_usuario}",
-                            size=16,
-                            italic=True,
-                            color="grey",
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                ),
                 ft.Divider(),
 
                 panel_sensores,

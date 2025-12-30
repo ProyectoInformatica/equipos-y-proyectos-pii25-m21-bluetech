@@ -109,13 +109,6 @@ def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
                         content=ft.Column(
                             [
                                 ft.Text("Exportar Métricas", size=34, weight="bold"),
-                                ft.Row(
-                                    controls=[
-                                        ft.Icon(ft.Icons.MANAGE_ACCOUNTS, color="grey"),
-                                        ft.Text(f"Usuario autenticado: {usuario.nombre_usuario}", italic=True)
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER 
-                                ),
                                 ft.Divider(),
                                 btn_sensores,
                                 btn_usuarios,

@@ -107,7 +107,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     boton_consumo_energetico = crear_boton("Consumo energético", ft.Icons.BOLT, #funcionalidad boton Gestión de usuarios
         on_click=ir_a_consumo_energetico,
     )
-    boton_exportar_metricas = crear_boton("Exportar metricas", ft.Icons.DOWNLOAD, #funcionalidad boton cerrar sesión
+    boton_exportar_metricas = crear_boton("Exportar métricas", ft.Icons.DOWNLOAD, #funcionalidad boton cerrar sesión
         on_click=ir_a_exportar_metricas,
     )
     boton_cerrar_sesion = crear_boton("Cerrar sesión", ft.Icons.LOGOUT, #funcionalidad boton cerrar sesión

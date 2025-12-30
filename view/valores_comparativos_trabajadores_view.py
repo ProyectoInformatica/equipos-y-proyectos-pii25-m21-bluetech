@@ -103,18 +103,6 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
                     weight="bold",
                     color=COLOR_PRINCIPAL,
                 ),
-                ft.Row(
-                    controls=[
-                        ft.Icon(ft.Icons.PERSON, color="grey"), 
-                        ft.Text(
-                            f"Usuario autenticado: {usuario.nombre_usuario}",
-                            size=14,
-                            italic=True,
-                            color="grey",
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,  # alinear texto al centro
-                ),
                 ft.Divider(),
                 ft.Container(
                     expand=True,
