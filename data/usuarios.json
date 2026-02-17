@@ -137,8 +137,8 @@
             "nombre_usuario": "dnovo",
             "contrasena_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
             "rol": "administrador",
-            "num_registros": 17,
-            "estado": 2,
+            "num_registros": 21,
+            "estado": 1,
             "id_usuario": 2005
         },
         {
