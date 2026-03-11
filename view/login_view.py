@@ -4,7 +4,7 @@ from flet import Icons  # Iconos
 from view.menu_admin_view import mostrar_pantalla_menu_admin
 from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
 from view.cambiar_contrasena_view import mostrar_pantalla_cambiar_contrasena
-
+from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
 
 def mostrar_pantalla_login(page: ft.Page, repo):
     # Limpia la página
@@ -71,6 +71,10 @@ def mostrar_pantalla_login(page: ft.Page, repo):
 
         if usuario.es_trabajador():
             mostrar_pantalla_menu_trabajador(page, repo, usuario)
+            return
+        
+        if usuario.es_tecnico():
+            mostrar_pantalla_menu_tecnico(page, repo, usuario)
             return
 
     # =========================

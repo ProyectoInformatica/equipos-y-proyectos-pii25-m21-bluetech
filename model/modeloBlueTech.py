@@ -14,7 +14,7 @@ RUTA_VALORES_COMPARATIVOS = "data/valores_comparativos.json"
 class Rol:
     ADMINISTRADOR = "administrador"
     TRABAJADOR = "trabajador"
-
+    TECNICO = "tecnico"
 
 # ============================
 # USUARIO (MODELO)
@@ -39,6 +39,9 @@ class Usuario:
 
     def es_trabajador(self):
         return self.rol == Rol.TRABAJADOR
+    
+    def es_tecnico(self): 
+        return self.rol == Rol.TECNICO
 
 
 # ============================

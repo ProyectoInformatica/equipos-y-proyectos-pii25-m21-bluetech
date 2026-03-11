@@ -3,6 +3,7 @@ import json
 
 BASE_ID_TRABAJADOR = 1001
 BASE_ID_ADMIN = 2001
+BASE_ID_TECNICO = 3001
 
 
 class UsuariosModel:
@@ -36,7 +37,9 @@ class UsuariosModel:
 
     def siguiente_id(self, rol):
         data = self.leer()
-        base = BASE_ID_TRABAJADOR if rol == "trabajador" else BASE_ID_ADMIN
+        if rol == "trabajador": base = BASE_ID_TRABAJADOR 
+        elif rol == "administrador": base = BASE_ID_ADMIN
+        else: base = BASE_ID_TECNICO
         usados = {u["id_usuario"] for u in data["usuarios"] if u["rol"] == rol}
         nuevo = base
         while nuevo in usados:
