@@ -2,7 +2,7 @@
 import hashlib
 from model.usuario_model import UsuariosModel
 
-AVISO_MIGRACION = "⚠️ IDs sin migrar. Actualiza usuarios.json."
+AVISO_MIGRACION = "⚠️ IDs sin migrar. Actualiza usuarios.json: trabajadores 1001+, administradores 2001+ y técnicos 3001+."
 
 
 class GestionUsuariosController:
@@ -19,50 +19,57 @@ class GestionUsuariosController:
         return ok, None if ok else AVISO_MIGRACION
 
     def obtener_listados(self):
-        """
-        Devuelve dos listas:
-        - trabajadores
-        - administradores
-        """
         data = self.model.leer()
         usuarios = data.get("usuarios", [])
 
         trabajadores = []
         administradores = []
+        tecnicos = []
 
         for u in usuarios:
-            if u.get("rol") == "trabajador":
-                trabajadores.append({
-                    "id": u.get("id_usuario"),
-                    "login": u.get("nombre_usuario")
-                })
-            elif u.get("rol") == "administrador":
-                administradores.append({
-                    "id": u.get("id_usuario"),
-                    "login": u.get("nombre_usuario")
-                })
+            rol = (u.get("rol") or "").lower()
+            registro = {
+                "id": u.get("id_usuario"),
+                "login": u.get("nombre_usuario")
+            }
+
+            if rol == "trabajador":
+                trabajadores.append(registro)
+            elif rol == "administrador":
+                administradores.append(registro)
+            elif rol == "tecnico":
+                tecnicos.append(registro)
 
         trabajadores.sort(key=lambda x: x["id"])
         administradores.sort(key=lambda x: x["id"])
+        tecnicos.sort(key=lambda x: x["id"])
 
-        return trabajadores, administradores
+        return trabajadores, administradores, tecnicos
 
     def crear_usuario(self, payload):
+        rol = (payload.get("rol") or "").strip().lower()
+
+        if rol not in ("trabajador", "administrador", "tecnico"):
+            return False, "Rol no válido."
+
         if not self.model.ids_migrados():
             return False, AVISO_MIGRACION
 
         login = payload.get("login", "").strip()
+
+        if not login:
+            return False, "Debe introducir un nombre de usuario."
 
         # Evitar duplicados
         if self.model.existe_login(login):
             return False, "El nombre de usuario ya existe. Por favor, pruebe con otro."
 
         data = self.model.leer()
-        rol = payload["rol"]
 
+        # Generar ID según rol
         nuevo_id = self.model.siguiente_id(rol)
 
-        # Construimos el registro completo siguiendo el formato exacto
+        # Construir usuario
         nuevo_usuario = {
             "nombre": payload.get("nombre", "").strip(),
             "apellidos": payload.get("apellidos", "").strip(),

@@ -95,8 +95,8 @@
             "nombre_usuario": "amorales",
             "contraseña": "AnaAdmin123",
             "rol": "administrador",
-            "num_registros": 9,
-            "estado": 2,
+            "num_registros": 10,
+            "estado": 1,
             "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
         },
         {
@@ -160,6 +160,56 @@
             "num_registros": 0,
             "estado": 3,
             "id_usuario": 1009
+        },
+        {
+            "nombre": "Mario",
+            "apellidos": "Ruiz López",
+            "nombre_usuario": "mruiz",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "tecnico",
+            "num_registros": 0,
+            "estado": 3,
+            "id_usuario": 3001
+        },
+        {
+            "nombre": "Laura",
+            "apellidos": "Santos Pérez",
+            "nombre_usuario": "lsantos",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "tecnico",
+            "num_registros": 0,
+            "estado": 3,
+            "id_usuario": 3002
+        },
+        {
+            "nombre": "Carlos",
+            "apellidos": "Martín Gómez",
+            "nombre_usuario": "cmartin",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "tecnico",
+            "num_registros": 0,
+            "estado": 3,
+            "id_usuario": 3003
+        },
+        {
+            "nombre": "Elena",
+            "apellidos": "Navarro Ruiz",
+            "nombre_usuario": "enavarro",
+            "contrasena_hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+            "rol": "tecnico",
+            "num_registros": 0,
+            "estado": 3,
+            "id_usuario": 3004
+        },
+        {
+            "nombre": "David",
+            "apellidos": "Herrera Torres",
+            "nombre_usuario": "dherrera",
+            "contrasena_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+            "rol": "tecnico",
+            "num_registros": 2,
+            "estado": 2,
+            "id_usuario": 3005
         }
     ]
 }
