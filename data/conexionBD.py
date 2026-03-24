@@ -1,7 +1,7 @@
 import mysql.connector
 
 try:
-    # 1. Configurar la conexión
+    # 1. Configurar la conexión (Tus datos ya están aquí)
     conexion = mysql.connector.connect(
         host="localhost",
         user="root",
@@ -10,22 +10,32 @@ try:
     )
 
     if conexion.is_connected():
-        print("¡Conexión exitosa a la base de datos!")
+        print("¡Conexión exitosa a la base de datos bluetech!")
         
-        # 2. Crear un objeto cursor para ejecutar consultas
         cursor = conexion.cursor()
         
-        # Ejemplo: Obtener la versión del servidor
-        cursor.execute("SELECT VERSION();")
-        version = cursor.fetchone()
-        print(f"Versión del servidor MySQL: {version[0]}")
+        # --- EL CAMBIO ESTÁ AQUÍ ---
+        # Cambia 'nombre_de_tu_tabla' por la tabla que quieras ver
+        tabla_a_consultar = "rol" 
+        
+        print(f"\n--- Contenido de la tabla: {tabla_a_consultar} ---")
+        cursor.execute(f"SELECT * FROM {tabla_a_consultar}")
+        
+        # fetchall() trae todas las filas de golpe
+        filas = cursor.fetchall()
+        
+        if not filas:
+            print("La tabla está vacía o no tiene registros.")
+        else:
+            for fila in filas:
+                # Imprime cada registro. Cada 'fila' es una tupla.
+                print(fila)
 
 except mysql.connector.Error as error:
-    print(f"Error al conectar: {error}")
+    print(f"Error al conectar o consultar: {error}")
 
 finally:
-    # 3. Cerrar la conexión siempre
     if 'conexion' in locals() and conexion.is_connected():
         cursor.close()
         conexion.close()
-        print("Conexión cerrada.")
+        print("\nConexión cerrada.")
