@@ -5,6 +5,7 @@ from controller.gestion_usuarios_controller import GestionUsuariosController
 
 BASE_ID_TRABAJADOR = 1001
 BASE_ID_ADMIN = 2001
+BASE_ID_TECNICO = 3001
 
 
 def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
@@ -37,7 +38,11 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
         label="Rol",
         width=W_LEFT,
         value="trabajador",
-        options=[ft.dropdown.Option("trabajador"), ft.dropdown.Option("administrador")],
+        options=[
+            ft.dropdown.Option("trabajador"),
+            ft.dropdown.Option("administrador"),
+            ft.dropdown.Option("tecnico"),
+        ],
     )
 
     btn_add = ft.ElevatedButton(
@@ -82,6 +87,7 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
     # =================== LISTADOS ===================
     listado_trab = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
     listado_admin = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
+    listado_tecnico = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
 
     cont_listado_trab = ft.Container(
         content=listado_trab,
@@ -103,7 +109,15 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
         expand=1,
     )
 
-    AVISO_MIGRACION = "⚠️ IDs sin migrar. Actualiza usuarios.json a trabajadores 1001+ y admins 2001+."
+    cont_listado_tecnico = ft.Container(
+    content=listado_tecnico,
+    bgcolor="#f7fff8",
+    padding=16,
+    border_radius=15,
+    border=ft.border.all(1, "#c8e6c9"),
+    width=520,
+    expand=1,
+    )
 
     # =================== REFRESCAR ===================
     def refrescar():
@@ -117,8 +131,9 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
 
         listado_trab.controls.clear()
         listado_admin.controls.clear()
+        listado_tecnico.controls.clear()
 
-        trabajadores, admins = controller.obtener_listados()
+        trabajadores, admins, tecnicos = controller.obtener_listados()
 
         if not trabajadores:
             listado_trab.controls.append(ft.Text("No hay trabajadores registrados.", color="grey", italic=True))
@@ -134,6 +149,21 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
             for u in admins:
                 listado_admin.controls.append(
                     ft.Text(f"ID: {u['id']} → {u['login']} (Administrador)", size=14, color="#d32f2f", weight="bold")
+                )
+        
+        if not tecnicos:
+            listado_tecnico.controls.append(
+                ft.Text("No hay técnicos registrados.", color="grey", italic=True)
+            )
+        else:
+            for u in tecnicos:
+                listado_tecnico.controls.append(
+                    ft.Text(
+                        f"ID: {u['id']} → {u['login']} (Técnico)",
+                        size=14,
+                        color="#2e7d32",
+                        weight="bold"
+                    )
                 )
 
         page.update()
@@ -174,10 +204,9 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
             return
 
         ok, msg = controller.crear_usuario(payload)
-        msg_add.value = f"Usuario '{login}' creado correctamente (ID: {msg})" if ok else msg
-        msg_add.color = "#2e7d32" if ok else "red"
         confirm_add["active"] = False
         confirm_add["data"] = None
+
         msg_add.value = f"Usuario '{login}' creado correctamente (ID: {msg})" if ok else msg
         msg_add.color = "#2e7d32" if ok else "red"
 
@@ -191,8 +220,10 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
     # =================== ELIMINAR ===================
     def eliminar(e):
         msg_add.value = ""
-        ok, _ = controller.comprobar_migracion()
+        ok, aviso = controller.comprobar_migracion()
         if not ok:
+            msg_del.value = aviso
+            msg_del.color = "orange"
             page.update()
             return
 
@@ -277,6 +308,8 @@ def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
                 cont_listado_trab,
                 ft.Container(height=16),
                 cont_listado_admin,
+                ft.Container(height=16),
+                cont_listado_tecnico,
             ],
             spacing=0,
             expand=True,

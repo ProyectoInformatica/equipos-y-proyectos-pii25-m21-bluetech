@@ -6,10 +6,11 @@ import hashlib
 def mostrar_pantalla_cambiar_contrasena(page: ft.Page, repo, usuario):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
+    from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
 
     # Limpia la página
     page.clean()
-    page.horizontal_alignment = ft.MainAxisAlignment.CENTER
+    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.scroll = None
     page.bgcolor = None
@@ -89,8 +90,11 @@ def mostrar_pantalla_cambiar_contrasena(page: ft.Page, repo, usuario):
         # Redirige automáticamente al menú tras cambiarla
         if usuario.rol == "administrador":
             mostrar_pantalla_menu_admin(page, repo, usuario)
+        elif usuario.rol == "tecnico":
+            mostrar_pantalla_menu_tecnico(page, repo, usuario)
         else:
             mostrar_pantalla_menu_trabajador(page, repo, usuario)
+
 
     btn_guardar.on_click = manejar_guardar
 

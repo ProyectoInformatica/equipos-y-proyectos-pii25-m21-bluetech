@@ -29,21 +29,38 @@ class UsuariosModel:
         for u in data["usuarios"]:
             rol = (u.get("rol") or "").lower()
             uid = u.get("id_usuario")
+
+            if uid is None:
+                return False
+
             if rol == "trabajador" and uid < BASE_ID_TRABAJADOR:
                 return False
             if rol == "administrador" and uid < BASE_ID_ADMIN:
                 return False
+            if rol == "tecnico" and uid < BASE_ID_TECNICO:
+                return False
+
         return True
 
     def siguiente_id(self, rol):
         data = self.leer()
-        if rol == "trabajador": base = BASE_ID_TRABAJADOR 
-        elif rol == "administrador": base = BASE_ID_ADMIN
-        else: base = BASE_ID_TECNICO
-        usados = {u["id_usuario"] for u in data["usuarios"] if u["rol"] == rol}
+        rol = (rol or "").lower()
+
+        if rol == "trabajador":
+            base = BASE_ID_TRABAJADOR
+        elif rol == "administrador":
+            base = BASE_ID_ADMIN
+        elif rol == "tecnico":
+            base = BASE_ID_TECNICO
+        else:
+            raise ValueError("Rol no válido")
+
+        usados = {u["id_usuario"] for u in data["usuarios"] if (u.get("rol") or "").lower() == rol}
         nuevo = base
+
         while nuevo in usados:
             nuevo += 1
+
         return nuevo
 
     def existe_login(self, login):
