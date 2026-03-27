@@ -3,23 +3,16 @@ from controller.valores_comparativos_controller import obtener_valores
 
 COLOR_PRINCIPAL = "blue"
 
-
 def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario):
-
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
-
     page.clean()
-
-    # 🔹 SOLO lectura desde controller
     datos = obtener_valores()
     tarjetas = []
 
-    # ------------------- TARJETAS -------------------
-
+    #TARJETAS
     # Temperatura y humedad
     for categoria in ("temperatura", "humedad"):
         info = datos.get(categoria, {})
-
         tarjetas.append(
             ft.Container(
                 width=650,
@@ -45,7 +38,6 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
                 ),
             )
         )
-
     # Calidad del aire
     calidad = datos.get("calidad_aire", {})
     for subparam, info in calidad.items():
@@ -73,8 +65,7 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
             )
         )
 
-    # ------------------- BOTÓN VOLVER -------------------
-
+    #BOTÓN VOLVER
     boton_volver = ft.ElevatedButton(
         text="Volver al menú",
         icon=ft.Icons.ARROW_BACK,
@@ -83,8 +74,7 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
         on_click=lambda e: mostrar_pantalla_menu_trabajador(page, repo, usuario),
     )
 
-    # ------------------- CONTENEDOR PRINCIPAL -------------------
-
+    #CONTENEDOR PRINCIPAL
     tarjeta = ft.Container(
         width=750,
         height=600,
@@ -127,5 +117,5 @@ def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario)
             ],
         )
     )
-
+    
     page.update()

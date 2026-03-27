@@ -1,62 +1,56 @@
-import json
+from data.conexionBD import obtener_conexion
+from datetime import datetime
 import random
 
-#para crear habitaciones con la interfaz
 def crear_habitacion_con_sensores(estado_habitacion, tipo_sala):
-    #Realiza la lectura de la informacion de los json de habitaciones y sensores
-    with open("data/sensores_temperatura.json", "r") as archivo:
-        datos1 = json.load(archivo)
-    with open("data/sensores_humedad.json", "r") as archivo:
-        datos2 = json.load(archivo)
-    with open("data/sensores_calidad_aire.json", "r") as archivo:
-        datos3 = json.load(archivo)
-    with open("data/habitacion.json", "r") as archivo:
-        datos4 = json.load(archivo)
-
-    # Nuevo ID reutilizando huecos si existen
-    ids = datos4["habitaciones"]["id_habitacion"]
-
-    if ids:
-        ids_ordenados = sorted(ids)
-        nuevo_id = None
-        for i in range(1, ids_ordenados[-1] + 1):
-            if i not in ids_ordenados:
-                nuevo_id = i
-                break
-        if nuevo_id is None:
-            nuevo_id = ids_ordenados[-1] + 1
-    else:
-        nuevo_id = 1
-
-    id = nuevo_id
-    id_sensor = id * 10
-
-    #insercción de ids en el json de sensores y habitaciones
-    datos4["habitaciones"]["id_habitacion"].append(id)
-    datos4["habitaciones"]["estado"].append(estado_habitacion)
-    datos4["habitaciones"].setdefault("tipo_sala", []).append(tipo_sala)
-    datos1["sensores_temp"]["id_sensor"].append(id_sensor+1)
-    datos2["sensores_hum"]["id_sensor"].append(id_sensor+2)
-    datos3["sensores_cali_aire"]["id_sensor"].append(id_sensor+3)
-
-    #Insercción del resto de datos en el json de sensores y habitación
-    datos1["sensores_temp"]["temperatura"].append(random.randint(20, 35))
-    datos2["sensores_hum"]["humedad"].append(random.randint(30, 70))
-    datos3["sensores_cali_aire"]["calidad_aire"]["PM2.5"].append(random.randint(10, 30))
-    datos3["sensores_cali_aire"]["calidad_aire"]["PM10"].append(random.randint(20, 50))
-    datos3["sensores_cali_aire"]["calidad_aire"]["CO"].append(random.randint(0, 15))
-    datos3["sensores_cali_aire"]["calidad_aire"]["NO2"].append(random.randint(0, 50))
-    datos3["sensores_cali_aire"]["calidad_aire"]["CO2"].append(random.randint(500, 2000))
-    datos3["sensores_cali_aire"]["calidad_aire"]["TVOC"].append(random.randint(100, 800))
-    #Añadir los datos al archivo
-    with open("data/sensores_temperatura.json", "w") as archivo:
-        json.dump(datos1, archivo, indent=4)
-    with open("data/sensores_humedad.json", "w") as archivo:
-        json.dump(datos2, archivo, indent=4)
-    with open("data/sensores_calidad_aire.json", "w") as archivo:
-        json.dump(datos3, archivo, indent=4)
-    with open("data/habitacion.json", "w") as archivo:
-        json.dump(datos4, archivo, indent=4)
+    conexion = obtener_conexion()
     
-    #devuelve a la interfaz el id de la habitación
-    return id
+    if conexion is None:
+        print("Error de conexión")
+        return None
+    
+    try:
+        cursor = conexion.cursor()
+        # 1. INSERTAR HABITACIÓN
+        query_habitacion = """
+        INSERT INTO habitacion (tipo_sala, estado)
+        VALUES (%s, %s)
+        """
+        cursor.execute(query_habitacion, (tipo_sala, estado_habitacion))
+        conexion.commit()
+        # ID generado automáticamente
+        id_habitacion = cursor.lastrowid
+        # 2. CREAR SENSORES
+        fecha = datetime.now().strftime("%Y-%m-%d")
+        # (tipo_sensor, fk_id_parametro, consumo)
+        sensores = [
+            ("Temperatura", 1, random.uniform(4.0, 6.0)),
+            ("Humedad", 2, random.uniform(2.0, 4.0)),
+            ("Calidad de Aire", 4, random.uniform(8.0, 12.0))
+        ]
+        query_sensor = """
+        INSERT INTO sensor 
+        (estado, fecha_instalacion, fk_id_habitacion, fk_id_parametro, consumo, tipo_sensor)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        for tipo, id_parametro, consumo in sensores:
+            cursor.execute(query_sensor, (
+                "Activo",
+                fecha,
+                id_habitacion,
+                id_parametro,
+                round(consumo, 2),  
+                tipo
+            ))
+        conexion.commit()
+        print(f"Habitación {id_habitacion} creada con sensores correctamente")
+        return id_habitacion
+    
+    except Exception as e:
+        print("Error al crear habitación:", e)
+        conexion.rollback()
+        return None
+    
+    finally:
+        cursor.close()
+        conexion.close()

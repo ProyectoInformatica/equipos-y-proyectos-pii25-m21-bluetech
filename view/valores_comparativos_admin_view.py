@@ -1,5 +1,4 @@
 import flet as ft
-
 from controller.valores_comparativos_controller import (
     obtener_valores,
     actualizar_valores
@@ -8,17 +7,10 @@ from controller.valores_comparativos_controller import (
 COLOR_PRINCIPAL = "blue"
 COLOR_TEXTO = "black"
 
-
-# =====================================================================
 #  PANTALLA ADMIN: CONSULTAR / EDITAR PARÁMETROS DE SANIDAD
-# =====================================================================
-
 def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
-
     from view.menu_admin_view import mostrar_pantalla_menu_admin
-
     page.clean()
-
     datos = obtener_valores()
     tarjetas = []
 
@@ -32,7 +24,6 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
-
         page.overlay.append(alerta)
         alerta.open = True
         page.update()
@@ -42,49 +33,44 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
         page.update()
 
     def abrir_editor(categoria, subclave=None):
-
         if subclave:
             valores = datos[categoria][subclave]
             titulo = f"Editar {subclave}"
         else:
             valores = datos[categoria]
             titulo = f"Editar {categoria}"
-
         campos = {}
+        campos_editables = ["min", "max", "unidad", "descripcion"]
         controles = []
-
         for k, v in valores.items():
-            campo = ft.TextField(label=k, value=str(v))
-            campos[k] = campo
-            controles.append(campo)
+            if k in campos_editables: 
+                campo = ft.TextField(label=k, value=str(v))
+                campos[k] = campo
+                controles.append(campo)
 
         def guardar_cambios(e):
-            for clave, campo in campos.items():
-                texto = campo.value.strip()
-
-                if clave in ("min", "max"):
-                    try:
+            try:
+                for clave, campo in campos.items():
+                    texto = campo.value.strip()
+                    if clave in ("min", "max"):
                         valor = float(texto)
-                    except ValueError:
-                        mostrar_error(f"El campo '{clave}' debe ser un número.")
-                        return
-
-                    if valor < 0:
-                        mostrar_error(f"El campo '{clave}' debe ser un número positivo.")
-                        return
-                else:
-                    # Campos no numéricos (unidad, descripcion, etc.)
-                    valor = texto
-
-                if subclave:
-                    datos[categoria][subclave][clave] = valor
-                else:
-                    datos[categoria][clave] = valor
-
-            actualizar_valores(datos)
-            dialog.open = False
-            page.update()
-            mostrar_pantalla_parametros_sanidad(page, repo, usuario)
+                        if valor < 0:
+                            raise ValueError(f"El campo '{clave}' debe ser positivo")
+                    else:
+                        valor = texto
+                    if subclave:
+                        datos[categoria][subclave][clave] = valor
+                    else:
+                        datos[categoria][clave] = valor
+                actualizar_valores(datos)
+            except ValueError as ve:
+                mostrar_error(str(ve))
+            except Exception as ex:
+                mostrar_error(f"Error al guardar: {ex}")
+            finally:
+                dialog.open = False
+                page.update()
+                mostrar_pantalla_parametros_sanidad(page, repo, usuario)
 
         def cerrar_dialogo(e=None):
             dialog.open = False
@@ -108,11 +94,8 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
     def make_on_click(categoria, subclave=None):
         return lambda e: abrir_editor(categoria, subclave)
 
-    # ------------------- TARJETAS -------------------
-
     for categoria in ("temperatura", "humedad"):
         info = datos[categoria]
-
         tarjetas.append(
             ft.Container(
                 width=650,

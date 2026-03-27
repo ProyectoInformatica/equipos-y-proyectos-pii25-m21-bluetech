@@ -7,7 +7,6 @@ COLOR_TEXTO = "white"
 
 def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
     """Pantalla con métricas simuladas de consumo energético (MVC)."""
-
     # Limpia la página
     page.controls.clear()
     page.horizontal_alignment = ft.MainAxisAlignment.CENTER
@@ -15,14 +14,10 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
     page.scroll = None
     page.bgcolor = None
 
-    # =========================
-    # DATOS (VIENEN DEL CONTROLLER)
-    # =========================
+    #DATOS (VIENEN DEL CONTROLLER)
     sensores, consumo_total = obtener_datos_consumo()
 
-    # =========================
-    # PANEL AZUL (DISEÑO IGUAL)
-    # =========================
+    #PANEL AZUL
     panel_sensores = ft.Container(
         bgcolor=COLOR_PRINCIPAL,
         border_radius=12,
@@ -36,7 +31,6 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
                     size=16,
                 ),
                 ft.Divider(color="white54", thickness=1),
-
                 *[
                     ft.Text(
                         f"• {s.nombre}: {s.detalle}",
@@ -45,7 +39,6 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
                     )
                     for s in sensores
                 ],
-
                 ft.Divider(color="white54", thickness=1),
                 ft.Text(
                     f"Consumo Total Est.: ~{consumo_total:.1f} W",
@@ -58,9 +51,7 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
         ),
     )
 
-    # =========================
-    # BOTÓN VOLVER (IGUAL)
-    # =========================
+    # BOTÓN VOLVER
     btn_volver = ft.ElevatedButton(
         content=ft.Row(
             [
@@ -80,9 +71,7 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
         on_click=lambda e: on_volver(),
     )
 
-    # =========================
-    # TARJETA PRINCIPAL (IGUAL)
-    # =========================
+    # TARJETA PRINCIPAL
     tarjeta = ft.Container(
         width=700,
         height=560,
@@ -99,9 +88,7 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
                     color=COLOR_PRINCIPAL,
                 ),
                 ft.Divider(),
-
                 panel_sensores,
-
                 ft.Divider(),
                 ft.Row([btn_volver], alignment=ft.MainAxisAlignment.CENTER),
             ],
@@ -111,9 +98,7 @@ def mostrar_pantalla_consumo_sensores(page: ft.Page, usuario, on_volver):
         ),
     )
 
-    # =========================
-    # LAYOUT FINAL (IGUAL)
-    # =========================
+    # LAYOUT FINAL
     layout = ft.Stack(
         expand=True,
         controls=[

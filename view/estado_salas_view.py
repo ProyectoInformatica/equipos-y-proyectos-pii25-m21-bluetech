@@ -1,5 +1,4 @@
 import flet as ft
-
 from controller.habitaciones_controller import (
     obtener_habitaciones,
     alternar_estado
@@ -8,50 +7,42 @@ from controller.habitaciones_controller import (
 COLOR_PRINCIPAL = "blue"
 COLOR_TEXTO = "white"
 
-
 def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen="trabajador"):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
-
     page.title = "Estado de salas"
     page.window_width = 1000
     page.window_height = 600
     page.window_resizable = True
     page.clean()
-
     datos = obtener_habitaciones()
-
     titulo = ft.Text(
         "🏨 Estado y gestión de salas",
         size=26,
         weight="bold",
         color=COLOR_PRINCIPAL
     )
-
     resultado = ft.Text("", size=18)
     input_id = ft.TextField(label="ID habitación", width=200)
     boton_cambiar = ft.ElevatedButton("Cambiar estado", disabled=True)
-
     boton_verificar = ft.ElevatedButton(
         "Verificar",
         icon=ft.Icons.SEARCH
     )
-
     boton_volver = ft.ElevatedButton(
         "Volver al menú",
         icon=ft.Icons.ARROW_BACK,
         bgcolor="grey",
         color="white"
     )
-
     lista_salas = ft.ListView(expand=True, spacing=10, padding=10)
 
     def refrescar_lista():
         lista_salas.controls.clear()
-        for i, id_hab in enumerate(datos["habitaciones"]["id_habitacion"]):
-            estado = datos["habitaciones"]["estado"][i]
+        for hab in datos:  
+            id_hab = hab["id_habitacion"]
+            estado = hab["estado"]
             color = "green" if estado == "libre" else "orange"
-
             lista_salas.controls.append(
                 ft.Container(
                     content=ft.Row(
@@ -76,15 +67,13 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
     def verificar_estado(e):
         try:
             id_habitacion = int(input_id.value)
-            habitaciones = datos["habitaciones"]["id_habitacion"]
-
-            if id_habitacion in habitaciones:
-                index = habitaciones.index(id_habitacion)
-                estado = datos["habitaciones"]["estado"][index]
-
+            # Extraer solo los ids
+            habitaciones_ids = [h["id_habitacion"] for h in datos]
+            if id_habitacion in habitaciones_ids:
+                index = habitaciones_ids.index(id_habitacion)
+                estado = datos[index]["estado"]
                 resultado.value = f"Estado actual de la sala {id_habitacion}: {estado}"
                 resultado.color = "green" if estado == "libre" else "orange"
-
                 boton_cambiar.disabled = False
                 boton_cambiar.data = index
             else:
@@ -95,14 +84,12 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
             resultado.value = "Introduce un ID válido."
             resultado.color = "red"
             boton_cambiar.disabled = True
-
         page.update()
 
     def cambiar_estado(e):
         index = boton_cambiar.data
-        nuevo_estado = alternar_estado(index)
-        datos["habitaciones"]["estado"][index] = nuevo_estado
-
+        nuevo_estado = alternar_estado(datos[index]["id_habitacion"])
+        datos[index]["estado"] = nuevo_estado
         resultado.value = f"Estado actualizado: {nuevo_estado}"
         resultado.color = "green" if nuevo_estado == "libre" else "orange"
         refrescar_lista()
