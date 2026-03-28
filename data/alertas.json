@@ -1,0 +1,13 @@
+[
+    {
+        "id_emisor": 1010,
+        "id_rol": "trabajador",
+        "nombre_emisor": "",
+        "descripcion": "prueba",
+        "estado": "en curso",
+        "fecha_hora": "2026-03-14 20:00",
+        "id_alerta": 1,
+        "id_tecnico": 3001,
+        "nombre_tecnico": "Dav89"
+    }
+]

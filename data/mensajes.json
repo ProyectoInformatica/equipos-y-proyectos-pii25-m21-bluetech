@@ -1,0 +1,47 @@
+[
+    {
+        "id_alerta": 1,
+        "id_emisor": 1010,
+        "nombre_emisor": "lucy",
+        "rol": "trabajador",
+        "texto": "Hola",
+        "fecha_hora": "2026-03-14 20:01",
+        "id_mensaje": 1
+    },
+    {
+        "id_alerta": 1,
+        "id_emisor": 3001,
+        "nombre_emisor": "Dav89",
+        "rol": "tecnico",
+        "texto": "Hola que necesita",
+        "fecha_hora": "2026-03-14 20:01",
+        "id_mensaje": 2
+    },
+    {
+        "id_alerta": 1,
+        "id_emisor": 1010,
+        "nombre_emisor": "lucy",
+        "rol": "trabajador",
+        "texto": "nada no hay problemas",
+        "fecha_hora": "2026-03-14 20:11",
+        "id_mensaje": 3
+    },
+    {
+        "id_alerta": 1,
+        "id_emisor": 3001,
+        "nombre_emisor": "Dav89",
+        "rol": "tecnico",
+        "texto": "hola",
+        "fecha_hora": "2026-03-18 17:12",
+        "id_mensaje": 4
+    },
+    {
+        "id_alerta": 1,
+        "id_emisor": 1010,
+        "nombre_emisor": "lucy",
+        "rol": "trabajador",
+        "texto": "hola",
+        "fecha_hora": "2026-03-18 17:13",
+        "id_mensaje": 5
+    }
+]
