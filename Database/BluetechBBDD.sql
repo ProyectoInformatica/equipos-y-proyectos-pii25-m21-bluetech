@@ -67,7 +67,7 @@ CREATE TABLE `sensor` (
 
 LOCK TABLES `sensor` WRITE;
 /*!40000 ALTER TABLE `sensor` DISABLE KEYS */;
-INSERT INTO `sensor` VALUES (1,'Activo','2023-01-15',1,1,'5.5','Temperatura'),(2,'Activo','2023-01-15',1,2,'3.2','Humedad'),(3,'Activo','2023-03-10',3,1,'5.4','Temperatura'),(4,'Activo','2023-04-05',4,4,'10.1','Calidad de Aire');
+INSERT INTO sensor (estado, fecha_instalacion, fk_id_habitacion, fk_id_parametro, consumo, tipo_sensor) VALUES ('Activo', '2026-03-28', 1, 1, 5.05, 'Temperatura'), ('Activo', '2026-03-28', 1, 2, 3.62, 'Humedad'), ('Activo', '2026-03-28', 1, 4, 9.26, 'Calidad de Aire'), ('Activo', '2026-03-28', 2, 1, 5.05, 'Temperatura'), ('Activo', '2026-03-28', 2, 2, 3.62, 'Humedad'), ('Activo', '2026-03-28', 2, 4, 9.26, 'Calidad de Aire'), ('Activo', '2026-03-28', 3, 1, 5.05, 'Temperatura'), ('Activo', '2026-03-28', 3, 2, 3.62, 'Humedad'), ('Activo', '2026-03-28', 3, 4, 9.26, 'Calidad de Aire'), ('Activo', '2026-03-28', 4, 1, 5.05, 'Temperatura'), ('Activo', '2026-03-28', 4, 2, 3.62, 'Humedad'), ('Activo', '2026-03-28', 4, 4, 9.26, 'Calidad de Aire'), ('Activo', '2026-03-28', 5, 1, 5.05, 'Temperatura'), ('Activo', '2026-03-28', 5, 2, 3.62, 'Humedad'), ('Activo', '2026-03-28', 5, 4, 9.26, 'Calidad de Aire');
 /*!40000 ALTER TABLE `sensor` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -122,7 +122,7 @@ CREATE TABLE `habitacion` (
 
 LOCK TABLES `habitacion` WRITE;
 /*!40000 ALTER TABLE `habitacion` DISABLE KEYS */;
-INSERT INTO `habitacion` VALUES (1,'S.aislamiento','libre'),(2,'S.hospitalizacion','libre'),(3,'S.hospitalizacion','ocupado'),(4,'S.hospitalizacion','libre'),(5,'S.hospitalizacion','ocupado'),(6,'S.hospitalizacion','ocupado'),(7,'S.hospitalizacion','ocupado'),(8,'S.hospitalizacion','ocupado'),(9,'S.hospitalizacion','libre'),(11,'S.hospitalizacion','libre'),(20,'S.hospitalizacion','libre'),(21,'S.aislamiento','libre'),(22,'S.hospitalizacion','libre'),(23,'S.hospitalizacion','ocupado'),(24,'S.hospitalizacion','libre'),(25,'S.hospitalizacion','ocupado'),(26,'S.hospitalizacion','ocupado'),(27,'S.hospitalizacion','ocupado'),(28,'S.hospitalizacion','ocupado'),(29,'S.hospitalizacion','libre'),(30,'S.hospitalizacion','libre'),(31,'S.hospitalizacion','libre'),(32,'S.aislamiento','libre'),(33,'S.hospitalizacion','libre'),(34,'S.hospitalizacion','ocupado'),(35,'S.hospitalizacion','libre'),(36,'S.hospitalizacion','ocupado'),(37,'S.hospitalizacion','ocupado'),(38,'S.hospitalizacion','ocupado'),(39,'S.hospitalizacion','ocupado'),(40,'S.hospitalizacion','libre'),(41,'S.hospitalizacion','libre'),(42,'S.hospitalizacion','libre');
+INSERT INTO habitacion (id_habitacion, tipo_sala, estado) VALUES (1, 'S.hospitalizacion', 'libre'), (2, 'S.hospitalizacion', 'libre'), (3, 'S.hospitalizacion', 'libre'), (4, 'S.hospitalizacion', 'libre'), (5, 'S.hospitalizacion', 'libre');
 /*!40000 ALTER TABLE `habitacion` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -176,7 +176,7 @@ CREATE TABLE `parametro` (
 
 LOCK TABLES `parametro` WRITE;
 /*!40000 ALTER TABLE `parametro` DISABLE KEYS */;
-INSERT INTO `parametro` VALUES (1,'Temperatura','Rango térmico óptimo normativo para confort y salud (ej. 21 a 24 grados)','°C'),(2,'Humedad Relativa','Nivel para minimizar proliferación de patógenos y sequedad (ej. 40% a 60%)','%'),(3,'Movimiento','Detección de ocupación para control de aforo y activación de ventilación','Estado/Binario'),(4,'Calidad del Aire (CO2)','Niveles de dióxido de carbono permitidos por sanidad (ej. < 800 ppm)','ppm');
+INSERT INTO `parametro` VALUES (1,'Temperatura','Rango térmico óptimo normativo para confort y salud (ej. 21 a 24 grados)','°C'),(2,'Humedad Relativa','Nivel para minimizar proliferación de patógenos y sequedad (ej. 40% a 60%)','%'),(3,'Calidad del Aire (CO2)','Niveles de dióxido de carbono permitidos por sanidad (ej. < 800 ppm)','ppm');
 /*!40000 ALTER TABLE `parametro` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -254,7 +254,7 @@ DROP TABLE IF EXISTS `valores_comparativos`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `valores_comparativos` (
   `id_rango` int NOT NULL,
-  `min` varchar(45) NOT NULL,
+  `min` varchar(45),
   `max` varchar(45) NOT NULL,
   `id_parametro` int NOT NULL,
   UNIQUE KEY `id_rango_UNIQUE` (`id_rango`),
@@ -269,7 +269,7 @@ CREATE TABLE `valores_comparativos` (
 
 LOCK TABLES `valores_comparativos` WRITE;
 /*!40000 ALTER TABLE `valores_comparativos` DISABLE KEYS */;
-INSERT INTO `valores_comparativos` (`id_rango`, `min`, `max`, `id_parametro`) VALUES(1, '22.0', '28.0', 1), (2, '34.0', '40.0', 2), (3, NULL, '1000.0', 4), (4, NULL, '20.0', 4), (5, NULL, '40.0', 4), (6, NULL, '10.0', 4), (7, NULL, '25.0', 4), (8, NULL, '500.0', 4);
+INSERT INTO `valores_comparativos` (`id_rango`, `min`, `max`, `id_parametro`) VALUES(1, '22.0', '28.0', 1), (2, '34.0', '40.0', 2), (3, NULL, '500.0', 3);
 /*!40000 ALTER TABLE `valores_comparativos` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

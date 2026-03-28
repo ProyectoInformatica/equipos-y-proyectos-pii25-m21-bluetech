@@ -40,7 +40,10 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
             valores = datos[categoria]
             titulo = f"Editar {categoria}"
         campos = {}
-        campos_editables = ["min", "max", "unidad", "descripcion"]
+        if categoria == "calidad_aire":
+            campos_editables = ["max", "unidad", "descripcion"]
+        else:
+            campos_editables = ["min", "max", "unidad", "descripcion"]
         controles = []
         for k, v in valores.items():
             if k in campos_editables: 
@@ -52,10 +55,13 @@ def mostrar_pantalla_parametros_sanidad(page: ft.Page, repo, usuario):
             try:
                 for clave, campo in campos.items():
                     texto = campo.value.strip()
-                    if clave in ("min", "max"):
-                        valor = float(texto)
-                        if valor < 0:
-                            raise ValueError(f"El campo '{clave}' debe ser positivo")
+                    if clave in ("max"):
+                        if texto == "":
+                            raise ValueError(f"El campo '{clave}' no puede estar vacío")
+                        try:
+                            valor = float(texto)
+                        except:
+                            raise ValueError(f"El campo '{clave}' debe ser un número válido")
                     else:
                         valor = texto
                     if subclave:

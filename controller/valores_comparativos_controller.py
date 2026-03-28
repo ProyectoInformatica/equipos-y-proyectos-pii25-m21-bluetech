@@ -15,4 +15,6 @@ def actualizar_valores(data):
     # calidad del aire
     for subclave, valores in data["calidad_aire"].items():
         for campo, valor in valores.items():
+            if valor is None or valor == "":
+                continue
             actualizar_valor_bd("calidad_aire", subclave, campo, valor)

@@ -9,22 +9,17 @@ from controller.mapa_habitaciones_admin_controller import (
     obtener_sensores
 )
 
-# ---------------------------------------------------------------------
 # Variables globales para UI
-# ---------------------------------------------------------------------
 habitaciones_parpadeo = []
 COLOR_ALERTA = "#FF8181"
 habitacion_expandida_id = None
 habitaciones_ui = {}
 necesita_reconstruccion = True
 
-# ---------------------------------------------------------------------
 # PANTALLA PRINCIPAL: MAPA EN DOS BLOQUES
-# ---------------------------------------------------------------------
 def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
     page.clean()
-
     page.title = "Mapa de Habitaciones - Hospital"
     page.scroll = None
     page.bgcolor = "#F0F0F0"
@@ -33,9 +28,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     global datos
     datos = obtener_datos()
 
-    # -----------------------------------------------------------------
     # BOTONES SUPERIORES
-    # -----------------------------------------------------------------
     boton_volver = ft.ElevatedButton(
         icon=ft.Icons.ARROW_BACK,
         text="Volver al menú",
@@ -56,9 +49,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
         on_click=actualizar
     )
 
-    # -----------------------------------------------------------------
     # PANEL DE GESTIÓN
-    # -----------------------------------------------------------------
     campo_estado = ft.Dropdown(
         label="Estado de la habitación",
         options=[ft.dropdown.Option("libre"), ft.dropdown.Option("ocupado")],
@@ -82,9 +73,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     campo_id_text = ft.TextField(label="ID de habitación a eliminar", width=200)
     mensaje_error_eliminar = ft.Text("", size=12, color="red")
 
-    # -----------------------------------------------------------------
     # CALLBACKS DE BOTONES
-    # -----------------------------------------------------------------
     def agregar_habitacion_ui(e):
         global datos, necesita_reconstruccion
         necesita_reconstruccion = True
@@ -109,7 +98,6 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             mensaje_error_eliminar.value = "❌ ID inválido"
             page.update()
             return
-
         ok, mensaje, datos = eliminar_habitacion_control(id_eliminar)
         if ok:
             actualizar_dropdown_plantas()
@@ -208,9 +196,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     boton_duplicar = ft.ElevatedButton(text="📑 Duplicar Planta", on_click=mostrar_confirmacion_duplicar)
     boton_eliminar_planta = ft.ElevatedButton(text="🗑️ Eliminar Planta", on_click=mostrar_confirmacion_eliminar_planta)
 
-    # -----------------------------------------------------------------
     # FUNCIONES AUXILIARES DE UI
-    # -----------------------------------------------------------------
     def planta_completa(indice_planta):
         datos_local = obtener_datos()
         total = len(datos_local["habitaciones"]["id_habitacion"])
@@ -229,9 +215,7 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
 
     contenedor_plantas = ft.Column(spacing=30, scroll=ft.ScrollMode.AUTO, expand=True)
 
-    # -----------------------------------------------------------------
     # CREACIÓN DE HABITACIÓN (UI)
-    # -----------------------------------------------------------------
     def crear_habitacion(index, id_hab, estado, humedad, temperatura, calidad_aire_data, rangos):
         # misma lógica de colores y textos que tu código original
         def color_si_fuera_rango(valor, min_val=None, max_val=None):
@@ -240,14 +224,12 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             if max_val is not None and valor > max_val:
                 return "yellow"
             return "black"
-
         en_rango = (
             rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"]
             and rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"]
             and all(calidad_aire_data[clave][index] <= rangos["calidad_aire"][clave]["max"]
                     for clave in rangos["calidad_aire"])
         )
-
         fondo = "green" if en_rango else "red"
         borde = ft.border.all(2, "black") if estado=="ocupado" else None
         textos = [
@@ -267,7 +249,6 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             ft.Text(f"TVOC: {calidad_aire_data['TVOC'][index]}", size=7,
                 color=color_si_fuera_rango(calidad_aire_data["TVOC"][index], max_val=rangos["calidad_aire"]["TVOC"]["max"])),
         ]
-
         color_original = fondo
         debe_parpadear = (estado=="ocupado" and not en_rango)
         contenido = ft.Column(textos, spacing=1, alignment=ft.MainAxisAlignment.CENTER)
@@ -288,7 +269,6 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                         txt.size = 7 if i>0 else 8
                     bloque_abierto.update()
                 bloque_abierto=None
-
             if e.control.width==80:
                 e.control.width=170
                 e.control.height=240
@@ -303,10 +283,8 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                     txt.size=7 if i>0 else 8
                 bloque_abierto=None
                 habitacion_expandida_id=None
-
             if e.control.page:
                 e.control.update()
-
         habitacion = ft.Container(
             content=contenido,
             width=80,
@@ -318,16 +296,12 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
             on_click=toggle_expand,
             data={"color_original": color_original, "id_habitacion": id_hab}
         )
-
         if debe_parpadear:
             habitaciones_parpadeo.append(habitacion)
-
         habitaciones_ui[id_hab] = habitacion
         return habitacion
 
-    # -----------------------------------------------------------------
     # RECONSTRUIR MAPA
-    # -----------------------------------------------------------------
     def reconstruir_mapa():
         global datos, habitaciones_parpadeo, bloque_abierto, habitacion_expandida_id, necesita_reconstruccion
         necesita_reconstruccion = False
@@ -337,55 +311,43 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
         contenedor_plantas.controls.clear()
         habitaciones_parpadeo.clear()
         datos = obtener_datos()
-
         sensores = obtener_sensores()
         humedad_data = sensores["humedad"]["humedad"]  # extraer la lista interna
         temperatura_data = sensores["temperatura"]["temperatura"]  # idem
         calidad_aire_data = sensores["calidad_aire"]["calidad_aire"]
         rangos = sensores["valores_comparativos"]
-
         ids = datos["habitaciones"]["id_habitacion"]
         estados = datos["habitaciones"]["estado"]
         total_habs = len(ids)
         total_plantas = (total_habs + 9) // 10
-
         for planta in range(total_plantas):
             inicio = planta * 10
             fin = min(inicio + 10, total_habs)
             fila1 = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
             fila2 = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
-
-            for i, (id_hab, estado) in enumerate(zip(ids[inicio:fin], estados[inicio:fin])):
-                # extraer valores de rangos individuales
-                temp_min = rangos["temperatura"]["min"][0] if isinstance(rangos["temperatura"]["min"], list) else rangos["temperatura"]["min"]
-                temp_max = rangos["temperatura"]["max"][0] if isinstance(rangos["temperatura"]["max"], list) else rangos["temperatura"]["max"]
-
-                hum_min = rangos["humedad"]["min"][0] if isinstance(rangos["humedad"]["min"], list) else rangos["humedad"]["min"]
-                hum_max = rangos["humedad"]["max"][0] if isinstance(rangos["humedad"]["max"], list) else rangos["humedad"]["max"]
-
-                # crear la habitación pasando los valores correctos
+            fin = min(inicio + 10, total_habs, len(temperatura_data), len(humedad_data))
+            for i in range(fin - inicio):
+                id_hab = ids[inicio + i]
+                estado = estados[inicio + i]
                 hab_ui = crear_habitacion(
-                    i + inicio,
+                    inicio + i,
                     id_hab,
                     estado,
-                    humedad_data[i + inicio],
-                    temperatura_data[i + inicio],
+                    humedad_data[inicio + i],
+                    temperatura_data[inicio + i],
                     calidad_aire_data,
                     rangos
                 )
-
                 if habitacion_expandida_id == id_hab:
                     hab_ui.width = 170
                     hab_ui.height = 240
-                    for i, txt in enumerate(hab_ui.content.controls):
-                        txt.size = 16 if i > 0 else 18
+                    for j, txt in enumerate(hab_ui.content.controls):
+                        txt.size = 16 if j > 0 else 18
                     bloque_abierto = hab_ui
-
                 if i < 5:
                     fila1.controls.append(hab_ui)
                 else:
                     fila2.controls.append(hab_ui)
-
             contenedor_plantas.controls.append(
                 ft.Column(
                     [
@@ -397,64 +359,51 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
-
         page.update()
 
-    # -----------------------------------------------------------------
     # ACTUALIZACIÓN AUTOMÁTICA Y PARPADEO
-    # -----------------------------------------------------------------
     def actualizar_sensores_y_colores():
         global datos
         if not habitaciones_ui:
             return
-
         sensores = obtener_sensores()
         humedad_data = sensores["humedad"]["humedad"]
         temperatura_data = sensores["temperatura"]["temperatura"]
         calidad_aire_data = sensores["calidad_aire"]["calidad_aire"]
         rangos = sensores["valores_comparativos"]
-
         ids = datos["habitaciones"]["id_habitacion"]
         estados = datos["habitaciones"]["estado"]
-
         for i, id_hab in enumerate(ids):
             hab_ui = habitaciones_ui.get(id_hab)
             if not hab_ui:
-                continue  # la habitación aún no existe en UI
-
+                continue  
             temperatura = temperatura_data[i]
             humedad = humedad_data[i]
-
             en_rango = (
                 rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"]
                 and rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"]
                 and all(calidad_aire_data[clave][i] <= rangos["calidad_aire"][clave]["max"]
                         for clave in rangos["calidad_aire"])
             )
-
             # actualizar color de fondo
             hab_ui.bgcolor = "green" if en_rango else "red"
             hab_ui.data["color_original"] = hab_ui.bgcolor
-
             # actualizar textos individuales
             controles = hab_ui.content.controls
             controles[1].value = f"🌡️ {temperatura}°C"
             controles[1].color = "black" if rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"] else "yellow"
-
             controles[2].value = f"💧 {humedad}%"
             controles[2].color = "black" if rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"] else "yellow"
-
             for j, clave in enumerate(["PM2.5","PM10","CO","NO2","CO2","TVOC"], start=3):
                 valor = calidad_aire_data[clave][i]
                 controles[j].value = f"{clave}: {valor}"
                 controles[j].color = "black" if valor <= rangos["calidad_aire"][clave]["max"] else "yellow"
-
             hab_ui.update()
 
     async def actualizar_periodicamente():
         while True:
             try:
-                actualizar_sensores_y_colores()  # solo actualizar datos y colores
+                actualizar_sensores_y_colores()  
             except Exception as e:
                 print("Error actualización periódica:", e)
             await asyncio.sleep(10)
@@ -466,21 +415,15 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
                     continue
                 hab.bgcolor = COLOR_ALERTA
                 hab.update()
-
             await asyncio.sleep(2)
-
             for hab in list(habitaciones_parpadeo):
                 if not hab.page:
                     continue
                 hab.bgcolor = hab.data["color_original"]
                 hab.update()
-
             await asyncio.sleep(6)
 
-
-    # -----------------------------------------------------------------
     # LAYOUT PRINCIPAL
-    # -----------------------------------------------------------------
     fila_agregar = ft.Row(
         controls=[boton_agregar, ft.Column([campo_estado, campo_tipo_sala], spacing=5, alignment=ft.MainAxisAlignment.START)],
         spacing=15,
@@ -516,10 +459,8 @@ def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     )
 
     bloque_derecho = ft.Container(content=contenedor_plantas, bgcolor="#E6F2FF", border=ft.border.all(4, "blue"), padding=20, expand=True)
-
     layout_principal = ft.Row(controls=[bloque_izquierdo, bloque_derecho], expand=True, vertical_alignment=ft.CrossAxisAlignment.START)
     page.add(ft.Row(controls=[layout_principal], expand=True))
-
     reconstruir_mapa()
     page.run_task(actualizar_periodicamente)
     page.run_task(parpadeo_alerta)

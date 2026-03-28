@@ -65,7 +65,7 @@ def categoria_to_parametro(categoria, subclave=None):
         return "Temperatura"
     elif categoria == "humedad":
         return "Humedad Relativa"
-    elif categoria == "calidad_aire" and subclave:
-        return subclave 
+    elif categoria == "calidad_aire" and subclave == "CO2":
+        return "Calidad del Aire (CO2)"
     else:
         return categoria
