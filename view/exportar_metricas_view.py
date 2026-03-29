@@ -1,5 +1,5 @@
-# view/exportar_metricas_view.py
 import flet as ft
+import os
 from controller.exportar_metricas_controller import ExportarMetricasController
 
 def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
@@ -12,9 +12,28 @@ def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
     controller = ExportarMetricasController()
     mensaje = ft.Text("", size=16, weight="bold", text_align="center")
 
-    # ---------------- EXPORTAR ----------------
-    def descargar_csv(tipo):
+    # ---------------- EXPORTAR EXCEL (NUEVO) ----------------
+    def descargar_excel(e):
+        # Mostramos mensaje de carga
+        mensaje.value = "Generando reporte Excel, por favor espera..."
+        mensaje.color = "blue"
+        page.update()
 
+        ok, resultado = controller.generar_excel_completo()
+
+        if ok:
+            # Convertimos la ruta relativa ("descargas/...") a una ruta absoluta para que el usuario la encuentre fácil
+            ruta_absoluta = os.path.abspath(resultado)
+            mensaje.value = f"✅ ¡Reporte Excel generado con éxito!\nGuardado en:\n{ruta_absoluta}"
+            mensaje.color = "green"
+        else:
+            mensaje.value = f"❌ Error: {resultado}"
+            mensaje.color = "red"
+        
+        page.update()
+
+    # ---------------- EXPORTAR CSV (CLÁSICO) ----------------
+    def descargar_csv(tipo):
         ok, resultado = controller.generar_csv(tipo)
 
         if not ok:
@@ -31,7 +50,7 @@ def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
                     path = e.path if e.path.endswith(".csv") else e.path + ".csv"
                     with open(path, "w", encoding="utf-8-sig") as f:
                         f.write(csv_content)
-                    mensaje.value = f"Archivo guardado en:\n{path}"
+                    mensaje.value = f"Archivo CSV guardado en:\n{path}"
                     mensaje.color = "green"
                 except Exception as ex:
                     mensaje.value = str(ex)
@@ -52,28 +71,32 @@ def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
         )
 
     # ---------------- BOTONES ----------------
+    btn_excel = ft.ElevatedButton(
+        "Descargar Reporte Completo (Excel)",
+        icon=ft.Icons.TABLE_CHART,
+        width=500,
+        height=70,
+        style=ft.ButtonStyle(
+            bgcolor="green",  # Solución rápida y segura
+            color="white",    # Solución rápida y segura
+        ),
+        on_click=descargar_excel,
+    )
+
     btn_sensores = ft.ElevatedButton(
-        "Descargar Sensores (CSV)",
+        "Descargar solo Sensores (CSV)",
         icon=ft.Icons.DOWNLOAD,
         width=500,
-        height=60,
+        height=50,
         on_click=lambda e: descargar_csv("sensores"),
     )
 
     btn_usuarios = ft.ElevatedButton(
-        "Descargar Usuarios (CSV)",
+        "Descargar solo Usuarios (CSV)",
         icon=ft.Icons.DOWNLOAD,
         width=500,
-        height=60,
+        height=50,
         on_click=lambda e: descargar_csv("usuarios"),
-    )
-
-    btn_habitaciones = ft.ElevatedButton(
-        "Descargar Habitaciones (CSV)",
-        icon=ft.Icons.DOWNLOAD,
-        width=500,
-        height=60,
-        on_click=lambda e: descargar_csv("habitaciones"),
     )
 
     def volver(e):
@@ -101,24 +124,26 @@ def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
                     alignment=ft.alignment.center,
                     content=ft.Container(
                         width=700,
-                        height=700,
-                        padding=50,
+                        height=750,
+                        padding=40,
                         bgcolor="white",
                         border_radius=20,
                         shadow=ft.BoxShadow(blur_radius=30, color="#30000000"),
                         content=ft.Column(
                             [
                                 ft.Text("Exportar Métricas", size=34, weight="bold"),
+                                ft.Text("Elige el formato de descarga:", size=16, color="grey"),
+                                ft.Divider(),
+                                btn_excel, # El botón principal de Excel
                                 ft.Divider(),
                                 btn_sensores,
                                 btn_usuarios,
-                                btn_habitaciones,
                                 mensaje,
                                 ft.Divider(),
                                 btn_volver,
                             ],
                             horizontal_alignment="center",
-                            spacing=20,
+                            spacing=15,
                         ),
                     ),
                 ),
