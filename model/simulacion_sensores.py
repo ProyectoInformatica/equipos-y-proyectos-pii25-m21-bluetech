@@ -10,7 +10,7 @@ from datetime import datetime
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',       
-    'password': 'Gabigoleador8',
+    'password': '',
     'database': 'bluetech'
 }
 

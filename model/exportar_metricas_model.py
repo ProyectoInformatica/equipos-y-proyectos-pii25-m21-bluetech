@@ -1,20 +1,11 @@
 import pandas as pd
-import mysql.connector
 from datetime import datetime
 import os
+from data.conexionBD import obtener_conexion
 
 class ExportarMetricasModel:
-    def __init__(self):
-        # Configuramos la conexión a la base de datos
-        self.db_config = {
-            'host': 'localhost',
-            'user': 'root',      
-            'password': 'Gabigoleador8',
-            'database': 'bluetech'
-        }
-
     def _obtener_conexion(self):
-        return mysql.connector.connect(**self.db_config)
+        return obtener_conexion()
 
     def obtener_sensores_combinados(self):
         conexion = self._obtener_conexion()
