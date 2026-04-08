@@ -1,8 +1,8 @@
-from model.ticket_model import TicketModel
+from model.ticket_model import TicketModelBD
 
 class TicketController:
     def __init__(self):
-        self.model = TicketModel()
+        self.model = TicketModelBD()
 
     def obtener_pendientes(self):
         # Todos los tickets que no están finalizados
@@ -25,7 +25,6 @@ class TicketController:
         """Libera un ticket para que otros técnicos puedan tomarlo."""
         tickets = self.model.leer_tickets()
         modificado = False
-        
         for t in tickets:
             # Solo podemos desasignar algo que ya está siendo atendido
             if t["id_ticket"] == ticket_id and t["estado"] == "en_proceso":
@@ -34,7 +33,6 @@ class TicketController:
                     t["tecnico_id"] = None
                     t["tecnico_nombre"] = None
                     modificado = True
-        
         if modificado:
             self.model.guardar_tickets(tickets)
         return modificado
@@ -42,13 +40,11 @@ class TicketController:
     def finalizar_ticket(self, ticket_id, id_tecnico):
         tickets = self.model.leer_tickets()
         modificado = False
-        
         for t in tickets:
             if t["id_ticket"] == ticket_id and t["estado"] == "en_proceso":
                 if t["tecnico_id"] == id_tecnico:
                     t["estado"] = "finalizado"
                     modificado = True
-        
         if modificado:
             self.model.guardar_tickets(tickets)
         return modificado

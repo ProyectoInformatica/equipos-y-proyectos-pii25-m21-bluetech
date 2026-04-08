@@ -1,367 +1,274 @@
-# view/gestion_usuarios_view.py
 import hashlib
 import flet as ft
 from controller.gestion_usuarios_controller import GestionUsuariosController
 
-BASE_ID_TRABAJADOR = 1001
-BASE_ID_ADMIN = 2001
-BASE_ID_TECNICO = 3001
-
-
 def mostrar_pantalla_gestion_usuarios(page: ft.Page, usuario, repo, on_volver):
     page.controls.clear()
-    page.scroll = None
     page.padding = 0
-    page.spacing = 0
-    page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.bgcolor = None
+    page.bgcolor = ft.Colors.BLUE_GREY_50
 
     controller = GestionUsuariosController()
 
     confirm_add = {"active": False, "data": None}
     confirm_del = {"active": False, "id": None}
 
-    msg_add = ft.Text("", size=14, weight="bold", text_align="center")
-    msg_del = ft.Text("", size=14, weight="bold", text_align="center")
+    msg_add = ft.Text("", size=13, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER)
+    msg_del = ft.Text("", size=13, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER)
 
-    # =================== CONTROLES ===================
-    W_LEFT = 420
-    W_HALF = 205
+    #Ajuste de anchos para que quepan 3 columnas de lista
+    W_LEFT = 350 
+    W_HALF = 170
 
-    campo_nombre = ft.TextField(label="Nombre", width=W_HALF)
-    campo_apellidos = ft.TextField(label="Apellidos", width=W_HALF)
-    campo_login = ft.TextField(label="Usuario (login)", width=W_HALF)
-    campo_pass = ft.TextField(label="Contraseña temporal", password=True, can_reveal_password=True, width=W_HALF)
+    #--- DISEÑO ---
+    def crear_input(label, icon, width=W_LEFT, password=False):
+        return ft.TextField(
+            label=label,
+            width=width,
+            prefix_icon=icon,
+            password=password,
+            can_reveal_password=password,
+            border_radius=10,
+            bgcolor=ft.Colors.GREY_50,
+            text_size=14
+        )
+
+    def crear_contenedor_lista(titulo, color, icon, control_lista):
+        return ft.Container(
+            expand=True,
+            padding=15,
+            border_radius=15,
+            bgcolor=ft.Colors.WHITE,
+            border=ft.border.all(1, ft.Colors.with_opacity(0.2, color)),
+            content=ft.Column([
+                ft.Row([ft.Icon(icon, color=color, size=20), ft.Text(titulo, weight=ft.FontWeight.BOLD, color=color)]),
+                ft.Divider(height=10),
+                control_lista
+            ])
+        )
+
+    #--- CONTROLES UI ---
+    campo_nombre = crear_input("Nombre", ft.Icons.PERSON_OUTLINE, width=W_HALF)
+    campo_apellidos = crear_input("Apellidos", ft.Icons.PERSON_OUTLINE, width=W_HALF)
+    campo_login = crear_input("Usuario (Login)", ft.Icons.ACCOUNT_CIRCLE_OUTLINED, width=W_HALF)
+    campo_pass = crear_input("Pass Temporal", ft.Icons.PASSWORD, width=W_HALF, password=True)
 
     dropdown_rol = ft.Dropdown(
-        label="Rol",
+        label="Rol del Sistema",
         width=W_LEFT,
+        border_radius=10,
         value="trabajador",
         options=[
-            ft.dropdown.Option("trabajador"),
-            ft.dropdown.Option("administrador"),
-            ft.dropdown.Option("tecnico"),
+            ft.dropdown.Option("trabajador", "Trabajador (Técnico Base)"),
+            ft.dropdown.Option("tecnico", "Técnico (Especialista)"),
+            ft.dropdown.Option("administrador", "Administrador (Control)")
         ],
     )
 
-    btn_add = ft.ElevatedButton(
-        "Añadir usuario",
-        icon=ft.Icons.PERSON_ADD,
-        bgcolor="#1565c0",
-        color="white",
-        width=W_LEFT,
-        height=52,
-    )
+    campo_id_del = crear_input("ID numérico a eliminar", ft.Icons.DELETE_OUTLINE)
+    campo_id_del.text_align = ft.TextAlign.CENTER
 
-    campo_id = ft.TextField(
-        label="ID del usuario a eliminar",
-        width=W_LEFT,
-        keyboard_type=ft.KeyboardType.NUMBER,
-        text_align="center",
-    )
+    listado_trab = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, spacing=8)
+    listado_tecn = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, spacing=8)
+    listado_admin = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, spacing=8)
 
-    btn_del = ft.ElevatedButton(
-        "Eliminar usuario",
-        icon=ft.Icons.DELETE_FOREVER,
-        bgcolor="#d32f2f",
-        color="white",
-        width=W_LEFT,
-        height=52,
-    )
-
-    btn_volver = ft.ElevatedButton(
-        "Volver al menú",
-        icon=ft.Icons.ARROW_BACK_IOS_NEW,
-        bgcolor="#1565c0",
-        color="white",
-        width=150,
-        height=40,
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=10),
-            padding=ft.padding.symmetric(horizontal=12, vertical=10),
-            text_style=ft.TextStyle(size=13, weight="w600"),
-        ),
-    )
-
-    # =================== LISTADOS ===================
-    listado_trab = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
-    listado_admin = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
-    listado_tecnico = ft.Column(scroll=ft.ScrollMode.AUTO, spacing=4)
-
-    cont_listado_trab = ft.Container(
-        content=listado_trab,
-        bgcolor="#f8fbff",
-        padding=16,
-        border_radius=15,
-        border=ft.border.all(1, "#bbdefb"),
-        width=520,
-        expand=2,
-    )
-
-    cont_listado_admin = ft.Container(
-        content=listado_admin,
-        bgcolor="#fff7f7",
-        padding=16,
-        border_radius=15,
-        border=ft.border.all(1, "#ffcdd2"),
-        width=520,
-        expand=1,
-    )
-
-    cont_listado_tecnico = ft.Container(
-    content=listado_tecnico,
-    bgcolor="#f7fff8",
-    padding=16,
-    border_radius=15,
-    border=ft.border.all(1, "#c8e6c9"),
-    width=520,
-    expand=1,
-    )
-
-    # =================== REFRESCAR ===================
+    #--- LÓGICA DE REFRESCADO ---
     def refrescar():
-        ok, aviso = controller.comprobar_migracion()
-        if not ok:
+        ok_mig, aviso = controller.comprobar_migracion()
+        if not ok_mig:
             msg_del.value = aviso
-            msg_del.color = "orange"
+            msg_del.color = ft.Colors.ORANGE_800
         else:
-            if (msg_del.value or "").startswith("⚠️"):
-                msg_del.value = ""
+            msg_del.value = ""
 
         listado_trab.controls.clear()
+        listado_tecn.controls.clear()
         listado_admin.controls.clear()
-        listado_tecnico.controls.clear()
 
-        trabajadores, admins, tecnicos = controller.obtener_listados()
+        data = controller.model.leer()
+        usuarios = data.get("usuarios", [])
 
+        trabajadores = []
+        tecnicos = []
+        administradores = []
+
+        for u in usuarios:
+            rol = u.get("rol")
+            user_data = {
+                "id": u.get("id_usuario"),
+                "login": u.get("nombre_usuario")
+            }
+
+            if rol == "trabajador":
+                trabajadores.append(user_data)
+            elif rol == "tecnico":
+                tecnicos.append(user_data)
+            elif rol == "administrador":
+                administradores.append(user_data)
+
+        #Ordenar
+        trabajadores.sort(key=lambda x: x["id"])
+        tecnicos.sort(key=lambda x: x["id"])
+        administradores.sort(key=lambda x: x["id"])
+
+        #Trabajadores
         if not trabajadores:
-            listado_trab.controls.append(ft.Text("No hay trabajadores registrados.", color="grey", italic=True))
+            listado_trab.controls.append(ft.Text("Sin trabajadores", color="grey"))
         else:
             for u in trabajadores:
                 listado_trab.controls.append(
-                    ft.Text(f"ID: {u['id']} → {u['login']} (Trabajador)", size=14, color="#1565c0")
+                    ft.Text(f"ID: {u['id']} - {u['login']}", color=ft.Colors.BLUE_700)
                 )
 
-        if not admins:
-            listado_admin.controls.append(ft.Text("No hay administradores registrados.", color="grey", italic=True))
-        else:
-            for u in admins:
-                listado_admin.controls.append(
-                    ft.Text(f"ID: {u['id']} → {u['login']} (Administrador)", size=14, color="#d32f2f", weight="bold")
-                )
-        
+        #Técnicos
         if not tecnicos:
-            listado_tecnico.controls.append(
-                ft.Text("No hay técnicos registrados.", color="grey", italic=True)
-            )
+            listado_tecn.controls.append(ft.Text("Sin técnicos", color="grey"))
         else:
             for u in tecnicos:
-                listado_tecnico.controls.append(
-                    ft.Text(
-                        f"ID: {u['id']} → {u['login']} (Técnico)",
-                        size=14,
-                        color="#2e7d32",
-                        weight="bold"
-                    )
+                listado_tecn.controls.append(
+                    ft.Text(f"ID: {u['id']} - {u['login']}", color=ft.Colors.TEAL_700, weight=ft.FontWeight.W_500)
+                )
+
+        #Admins
+        if not administradores:
+            listado_admin.controls.append(ft.Text("Sin admins", color="grey"))
+        else:
+            for u in administradores:
+                listado_admin.controls.append(
+                    ft.Text(f"ID: {u['id']} - {u['login']}", color=ft.Colors.RED_700, weight=ft.FontWeight.BOLD)
                 )
 
         page.update()
 
-    # =================== AÑADIR ===================
-    def añadir(e):
+    #--- MANEJADORES ---
+    def manejar_añadir(e):
         msg_add.value = ""
-        ok, _ = controller.comprobar_migracion()
-        if not ok:
-            msg_add.value = "⚠️ Acción bloqueada hasta migrar usuarios.json."
-            msg_add.color = "orange"
+        ok_mig, _ = controller.comprobar_migracion()
+        if not ok_mig:
+            msg_add.value = "⚠️ Bloqueado: requiere migración."
             page.update()
             return
-
-        if not all([campo_nombre.value, campo_apellidos.value, campo_login.value, campo_pass.value]):
-            msg_add.value = "Todos los campos son obligatorios."
-            msg_add.color = "red"
-            page.update()
-            return
-
-        login = campo_login.value.strip()
-        rol = (dropdown_rol.value or "").lower()
 
         payload = {
             "nombre": campo_nombre.value.strip(),
             "apellidos": campo_apellidos.value.strip(),
-            "login": login,
-            "rol": rol,
-            "hash": hashlib.sha256(campo_pass.value.encode("utf-8")).hexdigest(),
+            "login": campo_login.value.strip(),
+            "rol": dropdown_rol.value,
+            "hash": hashlib.sha256(campo_pass.value.encode()).hexdigest(),
         }
 
         if not confirm_add["active"] or confirm_add["data"] != payload:
-            confirm_add["active"] = True
-            confirm_add["data"] = payload
-            msg_add.value = f"¿Crear usuario '{login}' ({rol})? Pulsa otra vez para confirmar."
-            msg_add.color = "orange"
+            confirm_add["active"], confirm_add["data"] = True, payload
+            msg_add.value = f"¿Confirmar {payload['rol']} '{payload['login']}'?"
+            msg_add.color = ft.Colors.ORANGE_800
             page.update()
             return
 
-        ok, msg = controller.crear_usuario(payload)
+        ok, res = controller.crear_usuario(payload)
+        if ok:
+            msg_add.value = f"✅ Creado con ID: {res}"
+            msg_add.color = ft.Colors.GREEN_700
+            for c in [campo_nombre, campo_apellidos, campo_login, campo_pass]: c.value = ""
+            refrescar()
+        else:
+            msg_add.value = f"❌ {res}"
+            msg_add.color = ft.Colors.RED_700
+        
         confirm_add["active"] = False
-        confirm_add["data"] = None
-
-        msg_add.value = f"Usuario '{login}' creado correctamente (ID: {msg})" if ok else msg
-        msg_add.color = "#2e7d32" if ok else "red"
-
-        for c in [campo_nombre, campo_apellidos, campo_login, campo_pass]:
-            c.value = ""
-        dropdown_rol.value = "trabajador"
-
-        refrescar()
         page.update()
 
-    # =================== ELIMINAR ===================
-    def eliminar(e):
-        msg_add.value = ""
-        ok, aviso = controller.comprobar_migracion()
-        if not ok:
-            msg_del.value = aviso
-            msg_del.color = "orange"
+    def manejar_eliminar(e):
+        msg_del.value = ""
+        user_id_str = campo_id_del.value.strip()
+
+        if not user_id_str:
+            msg_del.value = "⚠️ Indica un ID de usuario."
+            msg_del.color = ft.Colors.RED_700
             page.update()
             return
 
-        raw = (campo_id.value or "").strip()
-        if not raw.isdigit():
-            msg_del.value = "Introduce un ID numérico válido."
-            msg_del.color = "red"
+        try:
+            user_id = int(user_id_str)
+        except ValueError:
+            msg_del.value = "⚠️ El ID debe ser un número."
+            msg_del.color = ft.Colors.RED_700
             page.update()
             return
 
-        id_elim = int(raw)
-        if hasattr(usuario, "id_usuario") and usuario.id_usuario == id_elim:
-            msg_del.value = "No puedes eliminar tu propio usuario."
-            msg_del.color = "red"
-            confirm_del["active"] = False
-            confirm_del["id"] = None
+        #Lógica de confirmación (Doble clic)
+        if not confirm_del["active"] or confirm_del["id"] != user_id:
+            confirm_del["active"], confirm_del["id"] = True, user_id
+            msg_del.value = f"¿Seguro que quieres eliminar al ID {user_id}? Pulsa otra vez."
+            msg_del.color = ft.Colors.ORANGE_800
             page.update()
             return
 
-        if not confirm_del["active"] or confirm_del["id"] != id_elim:
-            confirm_del["active"] = True
-            confirm_del["id"] = id_elim
-            msg_del.value = f"¿Eliminar usuario ID {id_elim}? Pulsa otra vez para confirmar."
-            msg_del.color = "orange"
-            page.update()
-            return
-
-        ok, msg = controller.eliminar_usuario(id_elim)
+        #Llamada al controller
+        ok, res = controller.eliminar_usuario(user_id)
+        if ok:
+            msg_del.value = f"✅ Usuario {user_id} eliminado."
+            msg_del.color = ft.Colors.GREEN_700
+            campo_id_del.value = ""
+            refrescar()
+        else:
+            msg_del.value = f"❌ {res}"
+            msg_del.color = ft.Colors.RED_700
+        
         confirm_del["active"] = False
-        confirm_del["id"] = None
-        msg_del.value = msg if msg else f"Usuario ID {id_elim} eliminado correctamente."
-        msg_del.color = "#2e7d32" if ok else "red"
-
-        campo_id.value = ""
-        refrescar()
         page.update()
 
-    # =================== EVENTOS ===================
-    btn_add.on_click = añadir
-    btn_del.on_click = eliminar
-    btn_volver.on_click = lambda e: on_volver()
+    #--- ESTRUCTURA ---
+    btn_add = ft.ElevatedButton("Registrar Usuario", icon=ft.Icons.ADD, bgcolor=ft.Colors.BLUE_700, color="white", width=W_LEFT, on_click=manejar_añadir)
+    btn_eliminar = ft.ElevatedButton("Eliminar Permanentemente", icon=ft.Icons.DELETE_FOREVER, bgcolor=ft.Colors.RED_700, color="white", width=W_LEFT, on_click=manejar_eliminar)
 
-    # =================== LAYOUT ===================
-    bloque_añadir = ft.Column(
-        [
-            ft.Text("Añadir usuario", weight="bold", size=20, color="#1565c0"),
-            ft.Row([campo_nombre, campo_apellidos], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            ft.Row([campo_login, campo_pass], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+    panel_gestion = ft.Container(
+        width=W_LEFT + 20,
+        content=ft.Column([
+            ft.Text("Alta de Usuarios", size=18, weight="bold", color=ft.Colors.BLUE_700),
+            ft.Row([campo_nombre, campo_apellidos]),
+            ft.Row([campo_login, campo_pass]),
             dropdown_rol,
             btn_add,
             msg_add,
-        ],
-        spacing=10,
+            ft.Divider(height=20),
+            ft.Text("Eliminar Usuario", size=18, weight="bold", color=ft.Colors.RED_700),
+            ft.Row([campo_id_del]),
+            btn_eliminar,
+            msg_del
+        ], spacing=10)
     )
 
-    bloque_eliminar = ft.Column(
+    panel_listados = ft.Row(
         [
-            ft.Text("Eliminar usuario", weight="bold", size=20, color="#d32f2f"),
-            campo_id,
-            btn_del,
-            msg_del,
+            crear_contenedor_lista("Trabajadores", ft.Colors.BLUE_700, ft.Icons.PERSON, listado_trab),
+            crear_contenedor_lista("Técnicos", ft.Colors.TEAL_700, ft.Icons.ENGINEERING, listado_tecn),
+            crear_contenedor_lista("Administradores", ft.Colors.RED_700, ft.Icons.SECURITY, listado_admin),
         ],
-        spacing=10,
-    )
-
-    panel_izquierdo = ft.Container(
-        width=W_LEFT,
-        content=ft.Column(
-            [
-                bloque_añadir,
-                ft.Divider(height=1, color="#e0e0e0"),
-                bloque_eliminar,
-            ],
-            spacing=18,
-        ),
-    )
-
-    panel_derecho = ft.Container(
         expand=True,
-        content=ft.Column(
-            [
-                cont_listado_trab,
-                ft.Container(height=16),
-                cont_listado_admin,
-                ft.Container(height=16),
-                cont_listado_tecnico,
-            ],
-            spacing=0,
-            expand=True,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-    )
-
-    cuerpo = ft.Row(
-        [
-            panel_izquierdo,
-            ft.Container(width=35),
-            panel_derecho,
-        ],
-        alignment=ft.MainAxisAlignment.START,
-        vertical_alignment=ft.CrossAxisAlignment.START,
-        expand=True,
-    )
-
-    tarjeta_blanca = ft.Container(
-        width=1120,
-        height=700,
-        padding=35,
-        bgcolor="white",
-        border_radius=20,
-        shadow=ft.BoxShadow(blur_radius=30, color="#30000000"),
-        content=ft.Column(
-            [
-                ft.Row([btn_volver], alignment=ft.MainAxisAlignment.START),
-                ft.Text(
-                    "Gestión de usuarios - Administrador",
-                    size=30,
-                    weight="bold",
-                    color="#1565c0",
-                    text_align="center",
-                ),
-                ft.Divider(height=1, color="#e0e0e0"),
-                ft.Container(expand=True, content=cuerpo),
-            ],
-            spacing=16,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
-        ),
+        spacing=15
     )
 
     page.add(
-        ft.Stack(
-            [
-                ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-                ft.Container(expand=True, alignment=ft.alignment.center, content=tarjeta_blanca),
-            ],
-            expand=True,
-        )
+        ft.Stack([
+            ft.Image(src="img/fondo.png", fit="cover", expand=True),
+            ft.Container(
+                expand=True,
+                bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK),
+                padding=20,
+                content=ft.Container(
+                    bgcolor=ft.Colors.WHITE,
+                    border_radius=20,
+                    padding=25,
+                    content=ft.Column([
+                        ft.Row([
+                            ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: on_volver()),
+                            ft.Text("Gestión de Usuarios y Roles", size=24, weight="bold"),
+                        ], alignment="spaceBetween"),
+                        ft.Divider(),
+                        ft.Row([panel_gestion, panel_listados], expand=True, vertical_alignment="start")
+                    ])
+                )
+            )
+        ], expand=True)
     )
 
     refrescar()

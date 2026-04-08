@@ -1,163 +1,108 @@
 import flet as ft
-
 from view.alertas_sistema_view import mostrar_pantalla_alertas_sistema
-from view.alertas_usuario_view import mostrar_pantalla_alertas_usuario
+from view.alertas_usuario_tecnico_view import mostrar_pantalla_alertas_usuario
 
-COLOR_PRINCIPAL = "blue"
-COLOR_TEXTO = "white"
-
+COLOR_TECNICO = ft.Colors.BLUE_700
+COLOR_FONDO_ICONO = ft.Colors.BLUE_50
 
 def mostrar_pantalla_menu_tecnico(page: ft.Page, repo, usuario):
-
     from view.login_view import mostrar_pantalla_login
-
-    page.clean()
-    page.horizontal_alignment = ft.MainAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.scroll = None
-    page.bgcolor = None
-
-
-    # CREAR BOTONES
-    def crear_boton(texto, icono, on_click=None):
-        return ft.ElevatedButton(
-            content=ft.Row(
-                [
-                    ft.Icon(icono, size=20),
-                    ft.Text(texto)
-                ],
-                alignment=ft.MainAxisAlignment.START
-            ),
-            style=ft.ButtonStyle(
-                bgcolor=COLOR_PRINCIPAL,
-                color=COLOR_TEXTO,
-                padding=20,
-                shape=ft.RoundedRectangleBorder(radius=10)
-            ),
-            expand=True,
-            on_click=on_click
-        )
-
-
-    # NAVEGACION
-    def ir_alertas_sistema(e):
-
-        mostrar_pantalla_alertas_sistema(
-            page=page,
-            repo=repo,
-            usuario=usuario
-        )
-
-
-    def ir_alertas_usuario(e):
-
-        mostrar_pantalla_alertas_usuario(
-            page=page,
-            repo=repo,
-            usuario=usuario
-        )
-
-
+    
+    page.controls.clear()
+    page.title = "BlueTech - Panel Técnico"
+    
+    # --- FUNCIONES ---
     def cerrar_sesion(e):
-
         usuario.estado = 2
         repo.guardar_cambios()
+        page.controls.clear()
         mostrar_pantalla_login(page, repo)
 
+    def crear_tarjeta_accion(texto, descripcion, icono, on_click):
+        return ft.Container(
+            content=ft.Row([
+                ft.Container(
+                    content=ft.Icon(icono, color=COLOR_TECNICO, size=30),
+                    bgcolor=COLOR_FONDO_ICONO,
+                    padding=12,
+                    border_radius=12,
+                ),
+                ft.Column([
+                    ft.Text(texto, size=16, weight=ft.FontWeight.BOLD),
+                    ft.Text(descripcion, size=12, color=ft.Colors.BLUE_GREY_400),
+                ], spacing=1),
+            ]),
+            padding=15,
+            border=ft.border.all(1, ft.Colors.GREY_200),
+            border_radius=15,
+            on_click=on_click,
+            on_hover=lambda e: setattr(
+                e.control,
+                "bgcolor",
+                ft.Colors.GREY_50 if e.data == "true" else None
+            ) or e.control.update(),
+        )
 
-    # BOTONES
-    boton_alertas_sistema = crear_boton(
-        "Alertas Sistema",
-        ft.Icons.WARNING_AMBER,
-        on_click=ir_alertas_sistema
-    )
-
-    boton_alertas_usuario = crear_boton(
-        "Alertas Usuario",
-        ft.Icons.NOTIFICATIONS_ACTIVE,
-        on_click=ir_alertas_usuario
-    )
-
-    boton_cerrar_sesion = crear_boton(
-        "Cerrar sesión",
-        ft.Icons.LOGOUT,
-        on_click=cerrar_sesion
-    )
-
-
-    # TARJETA MENU
     tarjeta_menu = ft.Container(
-        content=ft.Column(
-            [
-                ft.Text(
-                    "🛠️ Menú principal - Técnico",
-                    size=26,
-                    weight="bold",
-                    color=COLOR_PRINCIPAL
-                ),
-
-                ft.Row(
-                    [
-                        ft.Icon(ft.Icons.BADGE, color="grey"),
-                        ft.Text(
-                            f"Técnico: {usuario.nombre_usuario}",
-                            size=16,
-                            italic=True,
-                            color="grey"
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER
-                ),
-
-                ft.Divider(),
-
-                boton_alertas_sistema,
-                boton_alertas_usuario,
-
-                ft.Divider(),
-
-                boton_cerrar_sesion
-            ],
-            spacing=15,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        ),
-
-        padding=30,
-        bgcolor="white",
-        border_radius=15,
+        width=480,
+        bgcolor=ft.Colors.WHITE,
+        border_radius=20,
+        padding=40,
         shadow=ft.BoxShadow(
-            blur_radius=10,
-            color="grey"
+            blur_radius=30,
+            color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK)
         ),
+        content=ft.Column([
+            ft.Column([
+                ft.Row([
+                    ft.Icon(ft.Icons.BUILD_CIRCLE_ROUNDED, color=COLOR_TECNICO, size=40),
+                    ft.Text("Panel Operativo", size=26, weight=ft.FontWeight.BOLD),
+                ], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Text(
+                    f"Técnico: {usuario.nombre_usuario}",
+                    size=14,
+                    color=ft.Colors.GREY,
+                    italic=True
+                ),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
 
-        width=500,
-        height=420
-    )
+            ft.Divider(height=40, color=ft.Colors.TRANSPARENT),
 
-
-    # LAYOUT
-    layout = ft.Stack(
-        expand=True,
-        controls=[
-            ft.Image(
-                src="img/fondo.png",
-                fit=ft.ImageFit.COVER,
-                expand=True
+            crear_tarjeta_accion(
+                "Alertas del Sistema", 
+                "Revisar fallos en hardware y sensores",
+                ft.Icons.DASHBOARD_CUSTOMIZE_OUTLINED,
+                lambda _: (page.controls.clear(), mostrar_pantalla_alertas_sistema(page, repo, usuario))
             ),
 
-            ft.Container(
-                expand=True,
-                alignment=ft.alignment.center,
+            ft.Container(height=5),
 
-                content=ft.Column(
-                    controls=[tarjeta_menu],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                )
+            crear_tarjeta_accion(
+                "Mis Notificaciones", 
+                "Alertas asignadas y mensajes de usuario",
+                ft.Icons.NOTIFICATIONS_PAUSED_OUTLINED,
+                lambda _: (page.controls.clear(), mostrar_pantalla_alertas_usuario(page, repo, usuario))
+            ),
+
+            ft.Divider(height=40),
+
+            ft.TextButton(
+                "Cerrar Sesión",
+                icon=ft.Icons.POWER_SETTINGS_NEW,
+                on_click=cerrar_sesion,
+                style=ft.ButtonStyle(color=ft.Colors.RED_400)
             )
-        ]
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
-
-    page.add(layout)
-    page.update()
+    page.add(
+        ft.Stack([
+            ft.Image(src="img/fondo.png", fit="cover", expand=True),
+            ft.Container(
+                expand=True,
+                bgcolor=ft.Colors.with_opacity(0.3, ft.Colors.BLACK),
+                alignment=ft.Alignment.CENTER,
+                content=tarjeta_menu
+            )
+        ], expand=True)
+    )

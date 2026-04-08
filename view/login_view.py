@@ -1,152 +1,134 @@
 import flet as ft
-from flet import Icons  # Iconos
-
 from view.menu_admin_view import mostrar_pantalla_menu_admin
 from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
+from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico 
 from view.cambiar_contrasena_view import mostrar_pantalla_cambiar_contrasena
-from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
 
 def mostrar_pantalla_login(page: ft.Page, repo):
-    # Limpia la página
     page.controls.clear()
+    page.title = "BlueTech - Login"
+    page.window_resizable = False 
+    
+    def manejar_login(e):
+        nombre_login = (campo_usuario.value or "").strip()
+        contrasena = (campo_contrasena.value or "").strip()
 
-    # =========================
-    # CAMPOS DE ENTRADA
-    # =========================
+        if not nombre_login or not contrasena:
+            mensaje.value = "Por favor, completa todos los campos."
+            mensaje.color = ft.Colors.RED_400
+            page.update()
+            return
+
+        boton_login.disabled = True
+        page.update()
+
+        usuario = repo.verificar_login(nombre_login, contrasena)
+
+        if usuario is None:
+            mensaje.value = "Usuario o contraseña no válidos."
+            mensaje.color = ft.Colors.RED_400
+            boton_login.disabled = False
+            page.update()
+            return
+
+        #--- Seguridad ---
+        if usuario.estado == 3 or usuario.num_registros == 0 or usuario.num_registros >= 500:
+            page.controls.clear()
+            mostrar_pantalla_cambiar_contrasena(page, repo, usuario)
+            return
+
+        usuario.num_registros += 1
+        usuario.estado = 1
+        repo.guardar_cambios()
+
+        #--- Redirección ---
+        page.controls.clear()
+        if usuario.es_administrador():
+            mostrar_pantalla_menu_admin(page, repo, usuario)
+        elif usuario.es_trabajador():
+            mostrar_pantalla_menu_trabajador(page, repo, usuario)
+        elif usuario.es_tecnico():
+            mostrar_pantalla_menu_tecnico(page, repo, usuario)
+        else:
+            mensaje.value = "Error: Rol no reconocido."
+            mensaje.color = ft.Colors.RED_400
+            boton_login.disabled = False
+            page.update()
+
     campo_usuario = ft.TextField(
         label="Nombre de usuario",
-        prefix_icon=Icons.PERSON
+        prefix_icon=ft.Icons.PERSON_ROUNDED,
+        border_radius=12,
+        on_submit=manejar_login 
     )
 
     campo_contrasena = ft.TextField(
         label="Contraseña",
         password=True,
         can_reveal_password=True,
-        prefix_icon=Icons.LOCK
+        prefix_icon=ft.Icons.LOCK_PERSON_ROUNDED,
+        border_radius=12,
+        on_submit=manejar_login 
     )
 
-    mensaje = ft.Text(value="", size=14)
+    mensaje = ft.Text(value="", size=14, weight=ft.FontWeight.W_500)
 
-    # =========================
-    # MANEJO DEL LOGIN
-    # =========================
-    def manejar_login(e):
-        nombre_login = (campo_usuario.value or "").strip()
-        contrasena = (campo_contrasena.value or "").strip()
-
-        # Validación básica
-        if not nombre_login or not contrasena:
-            mensaje.value = "Debes introducir usuario y contraseña."
-            mensaje.color = "red"
-            page.update()
-            return
-
-        # Login (rol detectado automáticamente)
-        usuario = repo.verificar_login(nombre_login, contrasena)
-
-        if usuario is None:
-            mensaje.value = "Credenciales incorrectas."
-            mensaje.color = "red"
-            page.update()
-            return
-
-        # Forzar cambio de contraseña si aplica
-        if usuario.estado == 3 or usuario.num_registros == 0 or usuario.num_registros >= 500:
-            mostrar_pantalla_cambiar_contrasena(page, repo, usuario)
-            return
-
-        # Login normal
-        usuario.num_registros += 1
-        usuario.estado = 1
-        repo.guardar_cambios()
-
-        mensaje.value = "Inicio de sesión correcto."
-        mensaje.color = "green"
-        page.update()
-
-        # Redirección por rol
-        if usuario.es_administrador():
-            mostrar_pantalla_menu_admin(page, repo, usuario)
-            return
-
-        if usuario.es_trabajador():
-            mostrar_pantalla_menu_trabajador(page, repo, usuario)
-            return
-        
-        if usuario.es_tecnico():
-            mostrar_pantalla_menu_tecnico(page, repo, usuario)
-            return
-
-    # =========================
-    # BOTÓN LOGIN
-    # =========================
     boton_login = ft.ElevatedButton(
-        text="Iniciar sesión",
-        on_click=manejar_login,
-        bgcolor="blue",
-        color="white"
+        content=ft.Text("Acceder al Sistema"),
+        icon=ft.Icons.LOGIN_ROUNDED,
+        width=300,
+        height=50,
+        style=ft.ButtonStyle(
+            bgcolor=ft.Colors.BLUE_800,
+            color=ft.Colors.WHITE,
+            shape=ft.RoundedRectangleBorder(radius=12),
+        ),
+        on_click=manejar_login
     )
 
-    # =========================
-    # DISEÑO (IGUAL AL TUYO)
-    # =========================
+    formulario = ft.Container(
+        content=ft.Column(
+            controls=[
+                ft.Image(src="img/avatar_usuario.png", width=120, height=120),
+                ft.Text("Bienvenido", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_900),
+                ft.Text("Introduce tus credenciales para continuar", color=ft.Colors.BLUE_GREY_400),
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
+                campo_usuario,
+                campo_contrasena,
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                boton_login,
+                mensaje,
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+        ),
+        bgcolor=ft.Colors.WHITE,
+        border_radius=20,
+        padding=40,
+        width=450,
+        height=600,
+        shadow=ft.BoxShadow(
+            blur_radius=20
+        ),
+    )
+
     layout = ft.Stack(
+        expand=True,
         controls=[
-            # Fondo
             ft.Image(
                 src="img/fondo_login.png",
-                fit=ft.ImageFit.COVER,
+                fit="cover",
+                expand=True,
+            ),
+            ft.Container(
                 expand=True
             ),
-
-            # Contenedor principal
             ft.Container(
-                left=600,
-                top=0,
-                right=0,
-                bottom=0,
-                expand=True,
-                alignment=ft.alignment.center,
-                content=ft.Column(
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        ft.Image(
-                            src="img/avatar_usuario.png",
-                            width=150,
-                            height=150
-                        ),
-
-                        ft.Container(
-                            content=ft.Column(
-                                controls=[
-                                    ft.Text(
-                                        "Inicio de sesión",
-                                        size=20,
-                                        weight="bold",
-                                        color="blue"
-                                    ),
-                                    campo_usuario,
-                                    campo_contrasena,
-                                    boton_login,
-                                    mensaje
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                horizontal_alignment=ft.CrossAxisAlignment.CENTER
-                            ),
-                            bgcolor="white",
-                            border_radius=10,
-                            padding=20,
-                            shadow=ft.BoxShadow(
-                                blur_radius=15,
-                                color="grey"
-                            ),
-                            width=450
-                        )
-                    ]
-                )
+                content=formulario,
+                alignment=ft.Alignment.CENTER_RIGHT,
+                padding=ft.padding.only(right=100),
             )
-        ]
+        ],
     )
 
     page.add(layout)

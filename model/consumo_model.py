@@ -1,22 +1,43 @@
+from data.conexionBD import obtener_conexion
+
 class SensorConsumo:
     def __init__(self, nombre, detalle, w):
         self.nombre = nombre
         self.detalle = detalle
         self.w = w
 
+    def __str__(self):
+        return f"{self.nombre} - {self.detalle}"
+
 class ConsumoEnergeticoModel:
     @staticmethod
     def obtener_sensores():
-        # Valores simulados (hasta sensores reales)
-        return [
-            SensorConsumo("ESP32 + CAM (OV2640)", "~2.0 W (Peak)", 2.0),
-            SensorConsumo("DHT11", "~0.1 W", 0.1),
-            SensorConsumo("MQ-2 (Humo)", "~1.6 W", 1.6),
-            SensorConsumo("HC-SR04 (Distancia)", "~0.2 W", 0.2),
-            SensorConsumo("Ventilador 5V + LEDs", "~1.5 W", 1.5),
-            SensorConsumo("Motor DC 12V", "~2.4 W", 2.4),
-        ]
-
+        sensores = []
+        conexion = obtener_conexion()
+        if conexion is None:
+            return sensores
+        try:
+            cursor = conexion.cursor()
+            cursor.execute("SELECT tipo_sensor, consumo FROM sensor")
+            for tipo_sensor, consumo in cursor.fetchall():
+                try:
+                    w = float(consumo)
+                except:
+                    w = 0.0
+                sensores.append(
+                    SensorConsumo(
+                        nombre=tipo_sensor,
+                        detalle=f"{w} W",
+                        w=w
+                    )
+                )
+        except Exception as e:
+            print("Error al obtener sensores:", e)
+        finally:
+            cursor.close()
+            conexion.close()
+        return sensores
+    
     @staticmethod
     def consumo_total(sensores):
         return sum(s.w for s in sensores)

@@ -1,131 +1,108 @@
 import flet as ft
 from controller.valores_comparativos_controller import obtener_valores
 
-COLOR_PRINCIPAL = "blue"
-
+COLOR_PRIMARIO = ft.Colors.BLUE_800
+COLOR_FONDO_INFO = ft.Colors.BLUE_GREY_50
 
 def mostrar_pantalla_parametros_sanidad_trabajador(page: ft.Page, repo, usuario):
-
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
-
     page.clean()
-
-    # 🔹 SOLO lectura desde controller
+    
+    #Obtención de datos desde el controlador
     datos = obtener_valores()
     tarjetas = []
 
-    # ------------------- TARJETAS -------------------
-
-    # Temperatura y humedad
-    for categoria in ("temperatura", "humedad"):
-        info = datos.get(categoria, {})
-
-        tarjetas.append(
-            ft.Container(
-                width=650,
-                bgcolor="white",
-                padding=15,
-                border_radius=10,
-                shadow=ft.BoxShadow(blur_radius=8, color="grey"),
-                margin=ft.margin.symmetric(horizontal=10, vertical=10),
-                content=ft.Column(
-                    controls=[
-                        ft.Text(
-                            f"{'🌡️' if categoria == 'temperatura' else '💧'} {categoria.capitalize()}",
-                            size=20,
-                            weight="bold",
-                            color=COLOR_PRINCIPAL,
-                        ),
-                        ft.Text(
-                            f"Rango: {info.get('min')} - {info.get('max')} {info.get('unidad')}"
-                        ),
-                        ft.Text(info.get("descripcion", ""), italic=True),
-                        # ❌ SIN botón editar
-                    ]
-                ),
-            )
+    #--- GENERADOR DE TARJETAS INFORMATIVAS ---
+    def crear_tarjeta_info(titulo, valor, unidad, descripcion, icono, color_icono):
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Icon(icono, color=color_icono, size=24),
+                    ft.Text(titulo, size=18, weight="bold", color=ft.Colors.BLACK87),
+                ], alignment="start"),
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                ft.Row([
+                    ft.Text("Rango Seguro: ", weight="bold", size=14),
+                    ft.Text(f"{valor} {unidad}", size=14, color=COLOR_PRIMARIO),
+                ]),
+                ft.Text(descripcion, italic=True, size=12, color=ft.Colors.BLUE_GREY_400),
+            ], spacing=5),
+            bgcolor="white",
+            padding=20,
+            border_radius=12,
+            border=ft.border.all(1, ft.Colors.BLUE_GREY_100),
+            shadow=ft.BoxShadow(blur_radius=5, color=ft.Colors.with_opacity(0.1, "black"))
         )
 
-    # Calidad del aire
+    #Procesar Temperatura y Humedad
+    for cat in ["temperatura", "humedad"]:
+        info = datos.get(cat, {})
+        rango = f"{info.get('min')} a {info.get('max')}"
+        
+        icono = ft.Icons.THERMOSTAT if cat == "temperatura" else ft.Icons.WATER_DROP
+        color = ft.Colors.ORANGE_800 if cat == "temperatura" else ft.Colors.BLUE_600
+        
+        tarjetas.append(crear_tarjeta_info(
+            cat.capitalize(), rango, info.get('unidad', ''), 
+            info.get('descripcion', ''), icono, color
+        ))
+
+    #Procesar Calidad del Aire
     calidad = datos.get("calidad_aire", {})
-    for subparam, info in calidad.items():
-        tarjetas.append(
-            ft.Container(
-                width=650,
-                bgcolor="white",
-                padding=15,
-                border_radius=10,
-                shadow=ft.BoxShadow(blur_radius=8, color="grey"),
-                margin=ft.margin.symmetric(horizontal=10, vertical=10),
-                content=ft.Column(
-                    controls=[
-                        ft.Text(
-                            f"🫁 {subparam}",
-                            size=20,
-                            weight="bold",
-                            color=COLOR_PRINCIPAL,
-                        ),
-                        ft.Text(f"Máximo: {info.get('max')} {info.get('unidad')}"),
-                        ft.Text(info.get("descripcion", ""), italic=True),
-                        # ❌ SIN botón editar
-                    ]
-                ),
-            )
-        )
+    for sub, info in calidad.items():
+        tarjetas.append(crear_tarjeta_info(
+            sub, f"Máx {info.get('max')}", info.get('unidad', ''), 
+            info.get('descripcion', ''), ft.Icons.AIR_ROUNDED, ft.Colors.TEAL_600
+        ))
 
-    # ------------------- BOTÓN VOLVER -------------------
-
-    boton_volver = ft.ElevatedButton(
-        text="Volver al menú",
-        icon=ft.Icons.ARROW_BACK,
-        bgcolor=COLOR_PRINCIPAL,
-        color="white",
-        on_click=lambda e: mostrar_pantalla_menu_trabajador(page, repo, usuario),
-    )
-
-    # ------------------- CONTENEDOR PRINCIPAL -------------------
-
-    tarjeta = ft.Container(
-        width=750,
-        height=600,
-        padding=30,
+    #--- ESTRUCTURA DE LA PÁGINA ---
+    contenido_principal = ft.Container(
+        width=600,
+        height=700,
         bgcolor="white",
-        border_radius=15,
-        shadow=ft.BoxShadow(blur_radius=10, color="grey"),
-        content=ft.Column(
-            spacing=25,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
-            controls=[
-                ft.Text(
-                    "🔬 Parámetros de Sanidad",
-                    size=28,
-                    weight="bold",
-                    color=COLOR_PRINCIPAL,
-                ),
-                ft.Divider(),
-                ft.Container(
-                    expand=True,
-                    content=ft.Column(
-                        controls=tarjetas,
-                        spacing=20,
-                        scroll=ft.ScrollMode.AUTO,
-                    ),
-                ),
-                ft.Divider(),
-                boton_volver,
-            ],
-        ),
+        border_radius=20,
+        padding=40,
+        shadow=ft.BoxShadow(blur_radius=25, color=ft.Colors.BLACK26),
+        content=ft.Column([
+            #Cabecera
+            ft.Row([
+                ft.Icon(ft.Icons.HEALTH_AND_SAFETY_OUTLINED, color=COLOR_PRIMARIO, size=35),
+                ft.Column([
+                    ft.Text("Estándares de Sanidad", size=24, weight="bold", color=COLOR_PRIMARIO),
+                    ft.Text("Valores de referencia para el centro", size=14, color="grey"),
+                ], spacing=0)
+            ], alignment="center"), 
+            ft.Divider(height=30),
+            ft.Container(
+                expand=True,
+                content=ft.Column(tarjetas, scroll="auto", spacing=15) 
+            ),
+            ft.Divider(height=30),
+            #Botón Volver
+            ft.ElevatedButton(
+                "Regresar al Menú",
+                icon=ft.Icons.ARROW_BACK_IOS_NEW_ROUNDED,
+                on_click=lambda _: mostrar_pantalla_menu_trabajador(page, repo, usuario),
+                color="white",
+                bgcolor=COLOR_PRIMARIO,
+                style=ft.ButtonStyle(
+                    shape=ft.RoundedRectangleBorder(radius=10),
+                )
+            )
+        ], horizontal_alignment="center")
     )
 
     page.add(
-        ft.Stack(
-            expand=True,
-            controls=[
-                ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-                ft.Container(expand=True, alignment=ft.alignment.center, content=tarjeta),
-            ],
-        )
+        ft.Stack([
+            #Fondo con ajuste de imagen seguro
+            ft.Image(src="img/fondo.png", fit="cover", expand=True),
+            ft.Container(
+                expand=True,
+                bgcolor=ft.Colors.with_opacity(0.4, "black"),
+                alignment=ft.Alignment(0, 0), 
+                content=contenido_principal
+            )
+        ], expand=True)
     )
-
+    
     page.update()

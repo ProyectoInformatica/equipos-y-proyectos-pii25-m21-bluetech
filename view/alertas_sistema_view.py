@@ -1,20 +1,19 @@
 import flet as ft
 from controller.ticket_controller import TicketController
 
-
 def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
     from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
-
-    page.clean()
+    
+    page.controls.clear()
     controller = TicketController()
-
     page.bgcolor = "#F5F7FA"
 
-    # COLUMNAS POR SENSOR
-    col_temperatura = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
-    col_humedad = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
-    col_otros = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
+    #--- Columnas por Sensor ---
+    col_temperatura = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
+    col_humedad = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
+    col_otros = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
 
+    #--- Funciones de acciones ---
     def cerrar_sesion(e):
         usuario.estado = 2
         repo.guardar_cambios()
@@ -33,226 +32,139 @@ def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
         refrescar_tickets()
 
     def estado_chip(estado):
-
-        if estado == "pendiente":
-            return ft.Container(
-                bgcolor="#ffebee",
-                padding=ft.padding.symmetric(6, 3),
-                border_radius=20,
-                content=ft.Text("PENDIENTE", color="red", size=11, weight="bold")
-            )
-
+        es_pendiente = estado == "pendiente"
         return ft.Container(
-            bgcolor="#e3f2fd",
-            padding=ft.padding.symmetric(6, 3),
+            bgcolor="#ffebee" if es_pendiente else "#e3f2fd",
+            padding=ft.padding.symmetric(vertical=6, horizontal=12),
             border_radius=20,
-            content=ft.Text("EN PROCESO", color="blue", size=11, weight="bold")
+            content=ft.Text(
+                "PENDIENTE" if es_pendiente else "EN PROCESO",
+                color="red" if es_pendiente else "blue",
+                size=11,
+                weight=ft.FontWeight.BOLD
+            )
         )
 
     def crear_card_ticket(t):
-
         fila_acciones = ft.Row(spacing=10)
-
         id_asignado = t.get("tecnico_id")
         nombre_asignado = t.get("tecnico_nombre", "Desconocido")
-
         info_tecnico_ui = ft.Container()
-
+        
         if t["estado"] == "pendiente":
-
             fila_acciones.controls.append(
                 ft.ElevatedButton(
-                    "Atender",
+                    content=ft.Text("Atender", color="white"),
                     icon=ft.Icons.PLAY_ARROW,
-                    bgcolor="#1976D2",
-                    color="white",
+                    style=ft.ButtonStyle(bgcolor="#1976D2"),
                     on_click=lambda e, tid=t["id_ticket"]: asignar(tid)
                 )
             )
-
         elif t["estado"] == "en_proceso":
-
             if id_asignado == usuario.id_usuario:
-
                 info_tecnico_ui = ft.Text(
-                    f"Asignado a ti ({usuario.nombre_usuario})",
-                    color="green",
-                    weight="bold"
+                    "Asignado a ti",
+                    color=ft.Colors.GREEN_700,
+                    weight=ft.FontWeight.BOLD
                 )
-
                 fila_acciones.controls.extend([
                     ft.ElevatedButton(
-                        "Finalizar",
+                        content=ft.Text("Finalizar", color="white"),
                         icon=ft.Icons.CHECK,
-                        bgcolor="green",
-                        color="white",
+                        style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700),
                         on_click=lambda e, tid=t["id_ticket"]: cerrar(tid)
                     ),
                     ft.OutlinedButton(
-                        "Soltar",
+                        content=ft.Text("Soltar"),
                         icon=ft.Icons.UNDO,
                         on_click=lambda e, tid=t["id_ticket"]: desasignar(tid)
                     )
                 ])
-
             else:
-
                 info_tecnico_ui = ft.Text(
                     f"Técnico: {nombre_asignado}",
-                    color="orange"
+                    color=ft.Colors.ORANGE_800
                 )
 
         return ft.Container(
-            bgcolor="white",
+            bgcolor=ft.Colors.WHITE,
             border_radius=12,
             padding=15,
-            shadow=ft.BoxShadow(
-                blur_radius=12,
-                color="#E0E0E0"
-            ),
-            content=ft.Column([
-
-                ft.Row(
-                    [
-                        ft.Column(
-                            [
-                                ft.Text(
-                                    f"Ticket #{t['id_ticket']}",
-                                    weight="bold",
-                                    size=16
-                                ),
-                                ft.Text(
-                                    f"Habitación {t['id_habitacion']}",
-                                    size=12,
-                                    color="grey"
-                                )
-                            ],
-                            spacing=2
-                        ),
-
+            shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, "black")),
+            content=ft.Column(
+                controls=[
+                    ft.Row([
+                        ft.Column([
+                            ft.Text(f"Ticket #{t['id_ticket']}", weight=ft.FontWeight.BOLD, size=16),
+                            ft.Text(f"Habitación {t['id_habitacion']}", size=12, color=ft.Colors.GREY_600)
+                        ], spacing=2),
                         estado_chip(t["estado"])
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-                ),
-
-                ft.Text(f"Sensor: {t['tipo_sensor']}"),
-                ft.Text(f"Valor: {t['valor_detectado']}", weight="bold"),
-                ft.Text(f"Límite: {t['limite_establecido']}"),
-                ft.Text(t["descripcion"], size=12),
-
-                info_tecnico_ui,
-
-                ft.Divider(),
-
-                fila_acciones,
-
-                ft.Text(t["fecha"], size=10, color="grey")
-
-            ], spacing=6)
+                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    ft.Text(f"Sensor: {t['tipo_sensor']}"),
+                    ft.Text(f"Valor: {t['valor_detectado']}", weight=ft.FontWeight.BOLD),
+                    ft.Text(f"Límite: {t['limite_establecido']}"),
+                    ft.Text(t["descripcion"], size=12, italic=True),
+                    info_tecnico_ui,
+                    ft.Divider(height=10, thickness=1),
+                    fila_acciones,
+                    ft.Text(t["fecha"], size=10, color=ft.Colors.GREY_400)
+                ],
+                spacing=8
+            )
         )
-
+    
     def refrescar_tickets():
-
         col_temperatura.controls.clear()
         col_humedad.controls.clear()
         col_otros.controls.clear()
-
         tickets = controller.obtener_pendientes()
-
         for t in tickets:
-
             card = crear_card_ticket(t)
-
             tipo = t["tipo_sensor"].lower()
-
             if "temperatura" in tipo:
                 col_temperatura.controls.append(card)
-
             elif "humedad" in tipo:
                 col_humedad.controls.append(card)
-
             else:
                 col_otros.controls.append(card)
-
         page.update()
 
-    # CABECERAS DE SECTOR
-    sector_temperatura = ft.Container(
-        expand=True,
-        content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.Icons.THERMOSTAT, color="red"),
-                ft.Text("Temperatura", weight="bold", size=18)
-            ]),
-            ft.Divider(),
-            col_temperatura
-        ])
-    )
-
-    sector_humedad = ft.Container(
-        expand=True,
-        content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.Icons.WATER_DROP, color="blue"),
-                ft.Text("Humedad", weight="bold", size=18)
-            ]),
-            ft.Divider(),
-            col_humedad
-        ])
-    )
-
-    sector_otros = ft.Container(
-        expand=True,
-        content=ft.Column([
-            ft.Row([
-                ft.Icon(ft.Icons.SENSORS, color="purple"),
-                ft.Text("Otros sensores", weight="bold", size=18)
-            ]),
-            ft.Divider(),
-            col_otros
-        ])
-    )
+    #--- UI estática ---
+    def crear_sector(titulo, icono, color_icono, columna):
+        return ft.Container(
+            expand=True,
+            content=ft.Column([
+                ft.Row([
+                    ft.Icon(icono, color=color_icono),
+                    ft.Text(titulo, weight=ft.FontWeight.BOLD, size=18)
+                ]),
+                ft.Divider(color=color_icono),
+                columna
+            ])
+        )
 
     header = ft.Row(
         [
-            ft.Text(
-                f"Panel Técnico - {usuario.nombre_usuario}",
-                size=24,
-                weight="bold"
-            ),
-
+            ft.Text(f"Panel Técnico - {usuario.nombre_usuario}", size=24, weight=ft.FontWeight.BOLD),
             ft.Row([
-                ft.IconButton(
-                    ft.Icons.REFRESH,
-                    on_click=lambda _: refrescar_tickets()
-                ),
-                ft.IconButton(
-                    ft.Icons.ARROW_BACK,
-                    on_click=cerrar_sesion
-                )
+                ft.IconButton(ft.Icons.REFRESH, on_click=lambda _: refrescar_tickets(), tooltip="Refrescar"),
+                ft.IconButton(ft.Icons.ARROW_BACK, on_click=cerrar_sesion, tooltip="Volver")
             ])
         ],
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
     )
 
     page.add(
-        ft.Column(
-            [
-                header,
-                ft.Divider(),
-
-                ft.Row(
-                    [
-                        sector_temperatura,
-                        sector_humedad,
-                        sector_otros
-                    ],
-                    expand=True,
-                    spacing=20
-                )
-            ],
-            expand=True
-        )
+        ft.Column([
+            header,
+            ft.Divider(),
+            ft.Row([
+                crear_sector("Temperatura", ft.Icons.THERMOSTAT, ft.Colors.RED, col_temperatura),
+                crear_sector("Humedad", ft.Icons.WATER_DROP, ft.Colors.BLUE, col_humedad),
+                crear_sector("Otros", ft.Icons.SENSORS, ft.Colors.PURPLE, col_otros),
+            ], expand=True, spacing=20)
+        ], expand=True)
     )
 
+    #Carga inicial
     refrescar_tickets()

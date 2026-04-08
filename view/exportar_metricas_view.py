@@ -1,128 +1,108 @@
-# view/exportar_metricas_view.py
 import flet as ft
+import os
 from controller.exportar_metricas_controller import ExportarMetricasController
 
 def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
-
     from view.menu_admin_view import mostrar_pantalla_menu_admin
-    from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
 
+    #LIMPIEZA TOTAL
     page.clean()
+    page.padding = 0
+    page.spacing = 0
 
     controller = ExportarMetricasController()
-    mensaje = ft.Text("", size=16, weight="bold", text_align="center")
 
-    # ---------------- EXPORTAR ----------------
+    #--- UI ---
+    mensaje = ft.Text("", size=14, weight="w500", text_align="center")
+
+    #--- FUNCIÓN PARA GUARDAR DIRECTO ---
     def descargar_csv(tipo):
+        ok, res = controller.generar_csv(tipo)
 
-        ok, resultado = controller.generar_csv(tipo)
+        if ok:
+            nombre_archivo = res[0]
+            contenido = res[1]
 
-        if not ok:
-            mensaje.value = resultado
-            mensaje.color = "red"
+            #Guardar en Escritorio automáticamente
+            escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+            ruta = os.path.join(escritorio, nombre_archivo)
+
+            #Asegurar extensión .csv
+            if not ruta.lower().endswith(".csv"):
+                ruta += ".csv"
+
+            try:
+                with open(ruta, "w", encoding="utf-8-sig") as f:
+                    f.write(contenido)
+
+                mensaje.value = f"✅ Guardado en: {ruta}"
+                mensaje.color = ft.Colors.GREEN_700
+
+            except Exception as e:
+                mensaje.value = f"❌ Error al guardar: {str(e)}"
+                mensaje.color = ft.Colors.RED
+
             page.update()
-            return
 
-        nombre_csv, csv_content = resultado
+    #--- BOTONES ---
+    def descargar_excel(e):
+        ok, res = controller.generar_excel_completo()
 
-        def on_save(e: ft.FilePickerResultEvent):
-            if e.path:
-                try:
-                    path = e.path if e.path.endswith(".csv") else e.path + ".csv"
-                    with open(path, "w", encoding="utf-8-sig") as f:
-                        f.write(csv_content)
-                    mensaje.value = f"Archivo guardado en:\n{path}"
-                    mensaje.color = "green"
-                except Exception as ex:
-                    mensaje.value = str(ex)
-                    mensaje.color = "red"
-            else:
-                mensaje.value = "Descarga cancelada"
-                mensaje.color = "orange"
+        if ok:
+            mensaje.value = f"✅ Excel guardado en: {res}"
+            mensaje.color = ft.Colors.GREEN_700
+        else:
+            mensaje.value = f"❌ {res}"
+            mensaje.color = ft.Colors.RED
 
-            page.update()
-
-        picker = ft.FilePicker(on_result=on_save)
-        page.overlay.append(picker)
         page.update()
 
-        picker.save_file(
-            file_name=nombre_csv,
-            allowed_extensions=["csv"]
-        )
 
-    # ---------------- BOTONES ----------------
-    btn_sensores = ft.ElevatedButton(
-        "Descargar Sensores (CSV)",
-        icon=ft.Icons.DOWNLOAD,
-        width=500,
+    btn_excel = ft.ElevatedButton(
+        "Reporte Maestro (Excel)",
+        icon=ft.Icons.GRID_ON_ROUNDED,
+        width=400,
         height=60,
-        on_click=lambda e: descargar_csv("sensores"),
+        on_click=descargar_excel
     )
 
-    btn_usuarios = ft.ElevatedButton(
-        "Descargar Usuarios (CSV)",
-        icon=ft.Icons.DOWNLOAD,
-        width=500,
-        height=60,
-        on_click=lambda e: descargar_csv("usuarios"),
+    tarjeta = ft.Container(
+        content=ft.Column(
+            [
+                ft.Text("Exportar Métricas", size=30, weight="bold"),
+                btn_excel,
+                ft.OutlinedButton("Sensores (CSV)", on_click=lambda _: descargar_csv("sensores")),
+                ft.OutlinedButton("Usuarios (CSV)", on_click=lambda _: descargar_csv("usuarios")),
+                mensaje,
+                ft.TextButton("Volver", on_click=lambda _: mostrar_pantalla_menu_admin(page, repo, usuario)),
+            ],
+            horizontal_alignment="center",
+            spacing=15,
+        ),
+        bgcolor="white",
+        padding=40,
+        border_radius=20,
+        height=450,
     )
 
-    btn_habitaciones = ft.ElevatedButton(
-        "Descargar Habitaciones (CSV)",
-        icon=ft.Icons.DOWNLOAD,
-        width=500,
-        height=60,
-        on_click=lambda e: descargar_csv("habitaciones"),
-    )
-
-    def volver(e):
-        if usuario.rol == "administrador":
-            mostrar_pantalla_menu_admin(page, repo, usuario)
-        else:
-            mostrar_pantalla_menu_trabajador(page, repo, usuario)
-
-    btn_volver = ft.ElevatedButton(
-        "Volver al menú",
-        icon=ft.Icons.ARROW_BACK,
-        width=500,
-        height=60,
-        on_click=volver
-    )
-
-    # ---------------- LAYOUT ----------------
     page.add(
         ft.Stack(
-            expand=True,
-            controls=[
-                ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-                ft.Container(
+            [
+                ft.Image(
+                    src="img/fondo.png",
+                    fit="cover",
                     expand=True,
-                    alignment=ft.alignment.center,
-                    content=ft.Container(
-                        width=700,
-                        height=700,
-                        padding=50,
-                        bgcolor="white",
-                        border_radius=20,
-                        shadow=ft.BoxShadow(blur_radius=30, color="#30000000"),
-                        content=ft.Column(
-                            [
-                                ft.Text("Exportar Métricas", size=34, weight="bold"),
-                                ft.Divider(),
-                                btn_sensores,
-                                btn_usuarios,
-                                btn_habitaciones,
-                                mensaje,
-                                ft.Divider(),
-                                btn_volver,
-                            ],
-                            horizontal_alignment="center",
-                            spacing=20,
-                        ),
-                    ),
+                    width=page.width,
+                    height=page.height,
+                ),
+                ft.Container(
+                    content=tarjeta,
+                    alignment=ft.Alignment(0, 0),
+                    expand=True,
+                    bgcolor=ft.Colors.with_opacity(0.3, "black"),
                 ),
             ],
+            expand=True,
         )
     )
 

@@ -1,70 +1,88 @@
 import flet as ft
+from controller.habitaciones_controller import obtener_habitaciones, alternar_estado
 
-from controller.habitaciones_controller import (
-    obtener_habitaciones,
-    alternar_estado
-)
-
-COLOR_PRINCIPAL = "blue"
-COLOR_TEXTO = "white"
-
+COLOR_PRINCIPAL = ft.Colors.BLUE_800
+COLOR_TEXTO = ft.Colors.WHITE
 
 def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen="trabajador"):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
-
+    
     page.title = "Estado de salas"
-    page.window_width = 1000
-    page.window_height = 600
-    page.window_resizable = True
-    page.clean()
-
+    page.controls.clear()
+    
     datos = obtener_habitaciones()
-
+    
     titulo = ft.Text(
-        "🏨 Estado y gestión de salas",
-        size=26,
-        weight="bold",
+        "🏨 Gestión de Salas",
+        size=28,
+        weight=ft.FontWeight.BOLD,
         color=COLOR_PRINCIPAL
     )
-
-    resultado = ft.Text("", size=18)
-    input_id = ft.TextField(label="ID habitación", width=200)
-    boton_cambiar = ft.ElevatedButton("Cambiar estado", disabled=True)
-
-    boton_verificar = ft.ElevatedButton(
-        "Verificar",
-        icon=ft.Icons.SEARCH
+    
+    resultado = ft.Text("", size=16, weight=ft.FontWeight.W_500)
+    input_id = ft.TextField(
+        label="ID de la sala",
+        width=250,
+        border_radius=10,
+        prefix_icon=ft.Icons.DOOR_FRONT_DOOR,
+        on_change=lambda e: verificar_estado(e)
     )
-
-    boton_volver = ft.ElevatedButton(
-        "Volver al menú",
-        icon=ft.Icons.ARROW_BACK,
-        bgcolor="grey",
-        color="white"
+    
+    boton_cambiar = ft.ElevatedButton(
+        "Alternar Estado",
+        icon=ft.Icons.SWAP_HORIZ,
+        disabled=True,
+        style=ft.ButtonStyle(
+            color=ft.Colors.WHITE,
+            bgcolor={"": ft.Colors.BLUE_700, "disabled": ft.Colors.GREY_300}
+        )
     )
+    
+    lista_salas = ft.ListView(expand=True, spacing=8, padding=5)
 
-    lista_salas = ft.ListView(expand=True, spacing=10, padding=10)
-
+    #--- LÓGICA ---
     def refrescar_lista():
         lista_salas.controls.clear()
-        for i, id_hab in enumerate(datos["habitaciones"]["id_habitacion"]):
-            estado = datos["habitaciones"]["estado"][i]
-            color = "green" if estado == "libre" else "orange"
-
+        for hab in datos:
+            id_hab = hab["id_habitacion"]
+            estado = hab["estado"]
+            es_libre = estado.lower() == "libre"
             lista_salas.controls.append(
                 ft.Container(
                     content=ft.Row(
                         [
-                            ft.Text(f"Sala {id_hab}", weight="bold"),
-                            ft.Text(estado, color=color)
+                            ft.Row([
+                                ft.Icon(
+                                    ft.Icons.CIRCLE, 
+                                    color=ft.Colors.GREEN if es_libre else ft.Colors.ORANGE,
+                                    size=12
+                                ),
+                                ft.Text(f"Sala {id_hab}", weight=ft.FontWeight.W_500),
+                            ], spacing=10),
+                            ft.Container(
+                                content=ft.Text(
+                                    estado.upper(),
+                                    size=10,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.GREEN_900 if es_libre else ft.Colors.ORANGE_900
+                                ),
+                                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                                bgcolor=ft.Colors.GREEN_100 if es_libre else ft.Colors.ORANGE_100,
+                                border_radius=6
+                            )
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                     ),
-                    padding=10,
-                    border_radius=8,
-                    bgcolor="#f5f5f5",
-                    on_click=lambda e, id=id_hab: seleccionar_sala(id)
+                    padding=15,
+                    border_radius=10,
+                    bgcolor=ft.Colors.GREY_50,
+                    on_click=lambda e, id=id_hab: seleccionar_sala(id),
+                    on_hover=lambda e: setattr(
+                        e.control, 
+                        "bgcolor", 
+                        ft.Colors.BLUE_50 if e.data=="true" else ft.Colors.GREY_50
+                    ) or e.control.update()
                 )
             )
         page.update()
@@ -72,104 +90,100 @@ def mostrar_pantalla_estado_salas(page: ft.Page, repo=None, usuario=None, origen
     def seleccionar_sala(id_habitacion):
         input_id.value = str(id_habitacion)
         verificar_estado(None)
+        page.update()
 
     def verificar_estado(e):
         try:
-            id_habitacion = int(input_id.value)
-            habitaciones = datos["habitaciones"]["id_habitacion"]
-
-            if id_habitacion in habitaciones:
-                index = habitaciones.index(id_habitacion)
-                estado = datos["habitaciones"]["estado"][index]
-
-                resultado.value = f"Estado actual de la sala {id_habitacion}: {estado}"
-                resultado.color = "green" if estado == "libre" else "orange"
-
+            val = input_id.value.strip()
+            if not val:
+                resultado.value = ""
+                boton_cambiar.disabled = True
+                page.update()
+                return
+            id_habitacion = int(val)
+            habitaciones_ids = [h["id_habitacion"] for h in datos]
+            if id_habitacion in habitaciones_ids:
+                index = habitaciones_ids.index(id_habitacion)
+                estado = datos[index]["estado"]
+                resultado.value = f"La sala {id_habitacion} está actualmente: {estado.upper()}"
+                resultado.color = ft.Colors.GREEN_700 if estado.lower() == "libre" else ft.Colors.ORANGE_800
                 boton_cambiar.disabled = False
                 boton_cambiar.data = index
             else:
-                resultado.value = "La habitación no existe."
-                resultado.color = "red"
+                resultado.value = "ID no encontrado en el sistema."
+                resultado.color = ft.Colors.RED_600
                 boton_cambiar.disabled = True
         except ValueError:
-            resultado.value = "Introduce un ID válido."
-            resultado.color = "red"
+            resultado.value = "Ingresa un número de ID válido."
+            resultado.color = ft.Colors.RED_600
             boton_cambiar.disabled = True
-
         page.update()
 
-    def cambiar_estado(e):
+    def ejecutar_cambio_estado(e):
         index = boton_cambiar.data
-        nuevo_estado = alternar_estado(index)
-        datos["habitaciones"]["estado"][index] = nuevo_estado
-
-        resultado.value = f"Estado actualizado: {nuevo_estado}"
-        resultado.color = "green" if nuevo_estado == "libre" else "orange"
+        id_hab = datos[index]["id_habitacion"]
+        nuevo_estado = alternar_estado(id_hab)
+        datos[index]["estado"] = nuevo_estado
+        verificar_estado(None)
         refrescar_lista()
+        page.snack_bar = ft.SnackBar(ft.Text(f"Sala {id_hab} ahora está {nuevo_estado}"))
+        page.snack_bar.open = True
+        page.update()
 
-    def volver_al_menu(e):
+    def volver(e):
+        page.controls.clear()
         if origen == "admin":
             mostrar_pantalla_menu_admin(page, repo, usuario)
         else:
             mostrar_pantalla_menu_trabajador(page, repo, usuario)
 
-    boton_verificar.on_click = verificar_estado
-    boton_cambiar.on_click = cambiar_estado
-    boton_volver.on_click = volver_al_menu
+    boton_cambiar.on_click = ejecutar_cambio_estado
 
     panel_izquierdo = ft.Container(
-        width=300,
-        height=520,
-        bgcolor="white",
+        expand=1,
+        bgcolor=ft.Colors.WHITE,
         border_radius=15,
-        padding=15,
-        content=ft.Column(
-            [
-                ft.Text("📋 Salas disponibles", weight="bold", size=18),
-                ft.Divider(),
-                lista_salas
-            ]
-        )
+        padding=20,
+        shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK)),
+        content=ft.Column([
+            ft.Text("Lista de Salas", weight=ft.FontWeight.BOLD, size=18),
+            ft.Divider(),
+            lista_salas
+        ])
     )
 
     panel_derecho = ft.Container(
-        width=600,
-        height=520,
-        bgcolor="white",
+        expand=2,
+        bgcolor=ft.Colors.WHITE,
         border_radius=15,
-        padding=30,
-        content=ft.Column(
-            [
-                titulo,
-                ft.Divider(),
-                input_id,
-                boton_verificar,
-                resultado,
-                boton_cambiar,
-                ft.Divider(),
-                boton_volver
-            ],
-            spacing=15,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER
-        )
+        padding=40,
+        shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.12, ft.Colors.BLACK)),
+        content=ft.Column([
+            titulo,
+            ft.Text("Selecciona una sala para gestionar su disponibilidad.", color=ft.Colors.GREY_600),
+            ft.Divider(height=30),
+            input_id,
+            ft.Container(resultado, padding=ft.padding.only(top=10, bottom=10)),
+            boton_cambiar,
+            ft.Divider(height=40),
+            ft.TextButton("Volver al Menú Principal", icon=ft.Icons.ARROW_BACK, on_click=volver)
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)
     )
 
     page.add(
-        ft.Stack(
-            expand=True,
-            controls=[
-                ft.Image(src="img/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-                ft.Container(
-                    expand=True,
-                    padding=20,
-                    content=ft.Row(
-                        [panel_izquierdo, panel_derecho],
-                        spacing=20,
-                        alignment=ft.MainAxisAlignment.CENTER
-                    )
+        ft.Stack([
+            ft.Image(src="img/fondo.png", fit="cover", expand=True),
+            ft.Container(
+                expand=True,
+                bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), 
+                padding=40,
+                content=ft.Row(
+                    [panel_izquierdo, panel_derecho],
+                    spacing=30,
+                    alignment=ft.MainAxisAlignment.CENTER
                 )
-            ]
-        )
+            )
+        ], expand=True)
     )
 
     refrescar_lista()

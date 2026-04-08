@@ -12,17 +12,11 @@ from model.mapa_habitaciones_model import (
 
 def obtener_datos():
     datos = cargar_datos()
-
     ids = datos["habitaciones"]["id_habitacion"]
     estados = datos["habitaciones"]["estado"]
-
-    # 🔑 Ordenar por ID de habitación
     ordenados = sorted(zip(ids, estados), key=lambda x: x[0])
-
-    # Reconstruir listas ordenadas
     datos["habitaciones"]["id_habitacion"] = [h[0] for h in ordenados]
     datos["habitaciones"]["estado"] = [h[1] for h in ordenados]
-
     return datos
 
 def agregar_habitacion(estado, tipo_sala):
@@ -30,8 +24,7 @@ def agregar_habitacion(estado, tipo_sala):
     return cargar_datos()
 
 def eliminar_habitacion_control(id_hab):
-    datos = cargar_datos()
-    ok, mensaje = eliminar_habitacion_por_id(id_hab, datos)
+    ok, mensaje = eliminar_habitacion_por_id(id_hab)
     datos = cargar_datos()
     return ok, mensaje, datos
 

@@ -1,10 +1,10 @@
 from model.habitaciones_model import (
-    cargar_datos,
-    cambiar_estado_habitacion
+    cambiar_estado_habitacion,
+    obtener_habitaciones 
 )
 
-def obtener_habitaciones():
-    return cargar_datos()
+def listar_habitaciones():
+    return obtener_habitaciones()
 
-def alternar_estado(index):
-    return cambiar_estado_habitacion(index)
+def alternar_estado(id_habitacion):
+    return cambiar_estado_habitacion(id_habitacion)

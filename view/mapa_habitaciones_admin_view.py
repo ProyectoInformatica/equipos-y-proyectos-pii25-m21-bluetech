@@ -1,525 +1,301 @@
 import flet as ft
 import asyncio
-from controller.mapa_habitaciones_admin_controller import (
-    obtener_datos,
+from controller.mapa_habitaciones_controller import (
+    obtener_datos_mapa, 
     agregar_habitacion,
     eliminar_habitacion_control,
     duplicar_planta_control,
-    eliminar_planta_control,
-    obtener_sensores
+    eliminar_planta_control
 )
 
-# ---------------------------------------------------------------------
-# Variables globales para UI
-# ---------------------------------------------------------------------
-habitaciones_parpadeo = []
-COLOR_ALERTA = "#FF8181"
-habitacion_expandida_id = None
-habitaciones_ui = {}
-necesita_reconstruccion = True
+#--- ESTILOS ---
+COLOR_DISPONIBLE = "#A8D5BA"
+COLOR_OCUPADO = "#F2A2A2"
+COLOR_ALERTA = "#FF0000"
+COLOR_PASILLO = "#EDF2F7"
 
-# ---------------------------------------------------------------------
-# PANTALLA PRINCIPAL: MAPA EN DOS BLOQUES
-# ---------------------------------------------------------------------
+#Mantenemos la lista aquí para el efecto de parpadeo
+habitaciones_parpadeo = []
+
 def mostrar_pantalla_mapa_admin(page: ft.Page, repo, usuario):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
+    global habitaciones_parpadeo 
+    
     page.clean()
+    page.title = "Sistema Hospitalario - Panel de Control"
+    page.bgcolor = "#F8F9FA"
 
-    page.title = "Mapa de Habitaciones - Hospital"
-    page.scroll = None
-    page.bgcolor = "#F0F0F0"
-
-    bloque_abierto = None
-    global datos
-    datos = obtener_datos()
-
-    # -----------------------------------------------------------------
-    # BOTONES SUPERIORES
-    # -----------------------------------------------------------------
-    boton_volver = ft.ElevatedButton(
-        icon=ft.Icons.ARROW_BACK,
-        text="Volver al menú",
-        on_click=lambda e: mostrar_pantalla_menu_admin(page, repo, usuario)
-    )
-
-    def actualizar(e):
-        global datos, necesita_reconstruccion
-        necesita_reconstruccion = True
-        datos = obtener_datos()
-        reconstruir_mapa()
-        page.open(ft.SnackBar(ft.Text("🔄 Mapa actualizado manualmente")))
+    #--- FUNCIÓN DE MENSAJE ---
+    def mostrar_mensaje(texto, es_error=False):
+        snack = ft.SnackBar(
+            content=ft.Text(texto, color="white", weight="bold"),
+            bgcolor=ft.Colors.RED_400 if es_error else ft.Colors.GREEN_400,
+            duration=3000
+        )
+        page.overlay.append(snack)
+        snack.open = True
         page.update()
 
-    boton_actualizar = ft.ElevatedButton(
-        icon=ft.Icons.REFRESH,
-        text="Actualizar",
-        on_click=actualizar
-    )
-
-    # -----------------------------------------------------------------
-    # PANEL DE GESTIÓN
-    # -----------------------------------------------------------------
+    #--- ELEMENTOS DE UI ---
     campo_estado = ft.Dropdown(
-        label="Estado de la habitación",
+        label="Estado Inicial",
         options=[ft.dropdown.Option("libre"), ft.dropdown.Option("ocupado")],
-        value="libre"
+        value="libre", border_radius=10
     )
 
     campo_tipo_sala = ft.Dropdown(
-        label="Tipo de sala",
-        options=[
-            ft.dropdown.Option("S.aislamiento"),
-            ft.dropdown.Option("S.hospitalizacion"),
-            ft.dropdown.Option("S.cuidados_intensivos(UCI)"),
-            ft.dropdown.Option("S.espera"),
-            ft.dropdown.Option("S.urgencias"),
-            ft.dropdown.Option("S.recuperacion")
-        ],
-        value="S.hospitalizacion"
+        label="Especialidad",
+        options=[ft.dropdown.Option("S.hospitalizacion"), ft.dropdown.Option("S.aislamiento"), ft.dropdown.Option("S.urgencias")],
+        value="S.hospitalizacion", border_radius=10
     )
 
-    campo_planta = ft.Dropdown(label="Selecciona planta", options=[], width=200)
-    campo_id_text = ft.TextField(label="ID de habitación a eliminar", width=200)
-    mensaje_error_eliminar = ft.Text("", size=12, color="red")
+    campo_planta = ft.Dropdown(label="Planta", options=[], width=120, border_radius=10)
+    campo_id_text = ft.TextField(label="ID", width=80, border_radius=10, hint_text="Ej: 101")
+    
+    contenedor_plantas = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=30)
 
-    # -----------------------------------------------------------------
-    # CALLBACKS DE BOTONES
-    # -----------------------------------------------------------------
-    def agregar_habitacion_ui(e):
-        global datos, necesita_reconstruccion
-        necesita_reconstruccion = True
-        estado = campo_estado.value
-        tipo_sala = campo_tipo_sala.value
-        agregar_habitacion(estado, tipo_sala)
-        datos = obtener_datos()
-        actualizar_dropdown_plantas()
+    #--- LÓGICA DE EVENTOS ---
+    def actualizar(e=None):
         reconstruir_mapa()
-        page.open(ft.SnackBar(ft.Text(f"✅ Habitación creada correctamente")))
-        page.update()
+        if e: mostrar_mensaje("Datos sincronizados con éxito", es_error=False)
 
-    boton_agregar = ft.ElevatedButton(text="➕ Crear Sala", on_click=agregar_habitacion_ui)
+    def agregar_habitacion_ui(e):
+        res = agregar_habitacion(campo_estado.value, campo_tipo_sala.value)
+        if res:
+            reconstruir_mapa()
+            mostrar_mensaje(f"✅ Habitación {res} creada correctamente", es_error=False)
+        else:
+            mostrar_mensaje("❌ Error al crear la habitación", es_error=True)
 
     def eliminar_habitacion_ui(e):
-        global datos, necesita_reconstruccion
-        necesita_reconstruccion = True
-        mensaje_error_eliminar.value = ""
         try:
+            if not campo_id_text.value:
+                mostrar_mensaje("Introduce un ID para eliminar", es_error=True)
+                return
             id_eliminar = int(campo_id_text.value)
-        except:
-            mensaje_error_eliminar.value = "❌ ID inválido"
-            page.update()
-            return
-
-        ok, mensaje, datos = eliminar_habitacion_control(id_eliminar)
-        if ok:
-            actualizar_dropdown_plantas()
-            reconstruir_mapa()
-            mensaje_error_eliminar.value = ""
-            page.open(ft.SnackBar(ft.Text(f"✅ Habitación H{id_eliminar} eliminada correctamente")))
-        else:
-            mensaje_error_eliminar.value = f"❌ {mensaje}"
-        page.update()
-
-    boton_eliminar_sala = ft.ElevatedButton(text="🗑️ Eliminar Sala", on_click=eliminar_habitacion_ui)
-
-    def ejecutar_duplicacion(e, dlg):
-        page.close(dlg)
-        duplicar_planta_ui()
-        page.open(ft.SnackBar(ft.Text("✅ Planta duplicada correctamente")))
-        page.update()
-
-    def ejecutar_eliminacion_planta(e, dlg):
-        page.close(dlg)
-        eliminar_planta_ui()
-        page.open(ft.SnackBar(ft.Text("✅ Planta eliminada correctamente")))
-        page.update()
-
-    def cancelar_dialogo(e, dlg):
-        page.close(dlg)
-        page.open(ft.SnackBar(ft.Text("❌ Acción cancelada")))
-        page.update()
-
-    def duplicar_planta_ui():
-        global datos, necesita_reconstruccion
-        necesita_reconstruccion = True
-        if not campo_planta.value:
-            return
-        datos = duplicar_planta_control(int(campo_planta.value)-1)
-        actualizar_dropdown_plantas()
-        reconstruir_mapa()
-
-    def eliminar_planta_ui():
-        global datos, necesita_reconstruccion
-        necesita_reconstruccion = True
-        if not campo_planta.value:
-            return
-        indice = int(campo_planta.value) - 1
-        if not planta_completa(indice):
-            page.open(ft.SnackBar(
-                ft.Text("⚠️ La planta debe tener 10 habitaciones para duplicarse")
-            ))
-            page.update()
-            return
-        datos = eliminar_planta_control(int(campo_planta.value)-1)
-        actualizar_dropdown_plantas()
-        reconstruir_mapa()
-
-    def mostrar_confirmacion_duplicar(e):
-        if not campo_planta.value:
-            page.open(ft.SnackBar(ft.Text("⚠️ Selecciona una planta para gestionar")))
-            page.update()
-            return
-        indice = int(campo_planta.value) - 1
-        if not planta_completa(indice):
-            page.open(ft.SnackBar(
-                ft.Text("⚠️ La planta debe tener 10 habitaciones para duplicarse")
-            ))
-            page.update()
-            return
-        dlg = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirmación"),
-            content=ft.Text("¿Quieres duplicar esta planta (crear 10 salas nuevas con mismos estados)?"),
-            actions=[
-                ft.TextButton("Sí", on_click=lambda ev: ejecutar_duplicacion(ev, dlg)),
-                ft.TextButton("No", on_click=lambda ev: cancelar_dialogo(ev, dlg)),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        page.open(dlg)
-
-    def mostrar_confirmacion_eliminar_planta(e):
-        if not campo_planta.value:
-            page.open(ft.SnackBar(ft.Text("⚠️ Selecciona una planta para gestionar")))
-            page.update()
-            return
-        dlg = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirmación"),
-            content=ft.Text(f"⚠️ ¿Quieres eliminar COMPLETAMENTE la planta {campo_planta.value}?"),
-            actions=[
-                ft.TextButton("Sí", on_click=lambda ev: ejecutar_eliminacion_planta(ev, dlg)),
-                ft.TextButton("No", on_click=lambda ev: cancelar_dialogo(ev, dlg)),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        page.open(dlg)
-
-    boton_duplicar = ft.ElevatedButton(text="📑 Duplicar Planta", on_click=mostrar_confirmacion_duplicar)
-    boton_eliminar_planta = ft.ElevatedButton(text="🗑️ Eliminar Planta", on_click=mostrar_confirmacion_eliminar_planta)
-
-    # -----------------------------------------------------------------
-    # FUNCIONES AUXILIARES DE UI
-    # -----------------------------------------------------------------
-    def planta_completa(indice_planta):
-        datos_local = obtener_datos()
-        total = len(datos_local["habitaciones"]["id_habitacion"])
-        inicio = indice_planta * 10
-        fin = inicio + 10
-        return fin <= total
-
-    def actualizar_dropdown_plantas():
-        datos_local = obtener_datos()
-        total = len(datos_local["habitaciones"]["id_habitacion"])
-        plantas = (total + 9) // 10
-        campo_planta.options = [ft.dropdown.Option(str(p+1)) for p in range(plantas)] if plantas > 0 else []
-        page.update()
-
-    actualizar_dropdown_plantas()
-
-    contenedor_plantas = ft.Column(spacing=30, scroll=ft.ScrollMode.AUTO, expand=True)
-
-    # -----------------------------------------------------------------
-    # CREACIÓN DE HABITACIÓN (UI)
-    # -----------------------------------------------------------------
-    def crear_habitacion(index, id_hab, estado, humedad, temperatura, calidad_aire_data, rangos):
-        # misma lógica de colores y textos que tu código original
-        def color_si_fuera_rango(valor, min_val=None, max_val=None):
-            if min_val is not None and valor < min_val:
-                return "yellow"
-            if max_val is not None and valor > max_val:
-                return "yellow"
-            return "black"
-
-        en_rango = (
-            rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"]
-            and rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"]
-            and all(calidad_aire_data[clave][index] <= rangos["calidad_aire"][clave]["max"]
-                    for clave in rangos["calidad_aire"])
-        )
-
-        fondo = "green" if en_rango else "red"
-        borde = ft.border.all(2, "black") if estado=="ocupado" else None
-        textos = [
-            ft.Text(f"H{id_hab}", size=8, weight="bold", color="gray"),
-            ft.Text(f"🌡️ {temperatura}°C", size=7, color=color_si_fuera_rango(temperatura, rangos["temperatura"]["min"], rangos["temperatura"]["max"])),
-            ft.Text(f"💧 {humedad}%", size=7, color=color_si_fuera_rango(humedad, rangos["humedad"]["min"], rangos["humedad"]["max"])),
-            ft.Text(f"PM2.5: {calidad_aire_data['PM2.5'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["PM2.5"][index], max_val=rangos["calidad_aire"]["PM2.5"]["max"])),
-            ft.Text(f"PM10: {calidad_aire_data['PM10'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["PM10"][index], max_val=rangos["calidad_aire"]["PM10"]["max"])),
-            ft.Text(f"CO: {calidad_aire_data['CO'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["CO"][index], max_val=rangos["calidad_aire"]["CO"]["max"])),
-            ft.Text(f"NO2: {calidad_aire_data['NO2'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["NO2"][index], max_val=rangos["calidad_aire"]["NO2"]["max"])),
-            ft.Text(f"CO2: {calidad_aire_data['CO2'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["CO2"][index], max_val=rangos["calidad_aire"]["CO2"]["max"])),
-            ft.Text(f"TVOC: {calidad_aire_data['TVOC'][index]}", size=7,
-                color=color_si_fuera_rango(calidad_aire_data["TVOC"][index], max_val=rangos["calidad_aire"]["TVOC"]["max"])),
-        ]
-
-        color_original = fondo
-        debe_parpadear = (estado=="ocupado" and not en_rango)
-        contenido = ft.Column(textos, spacing=1, alignment=ft.MainAxisAlignment.CENTER)
-
-        def toggle_expand(e):
-            nonlocal bloque_abierto
-            global habitacion_expandida_id
-            id_actual = e.control.data.get("id_habitacion")
-            if id_actual is None:
-                return
-            if necesita_reconstruccion:
-                return
-            if bloque_abierto and bloque_abierto!=e.control:
-                if bloque_abierto.page:
-                    bloque_abierto.width=80
-                    bloque_abierto.height=120
-                    for i, txt in enumerate(bloque_abierto.content.controls):
-                        txt.size = 7 if i>0 else 8
-                    bloque_abierto.update()
-                bloque_abierto=None
-
-            if e.control.width==80:
-                e.control.width=170
-                e.control.height=240
-                for i, txt in enumerate(textos):
-                    txt.size=16 if i>0 else 18
-                bloque_abierto=e.control
-                habitacion_expandida_id=id_actual
+            ok, mensaje_res, _ = eliminar_habitacion_control(id_eliminar)
+            if ok:
+                reconstruir_mapa()
+                mostrar_mensaje(f"🗑️ Habitación {id_eliminar} eliminada", es_error=False)
+                campo_id_text.value = ""
             else:
-                e.control.width=80
-                e.control.height=120
-                for i, txt in enumerate(textos):
-                    txt.size=7 if i>0 else 8
-                bloque_abierto=None
-                habitacion_expandida_id=None
-
-            if e.control.page:
-                e.control.update()
-
-        habitacion = ft.Container(
-            content=contenido,
-            width=80,
-            height=120,
-            bgcolor=fondo,
-            border=borde,
-            alignment=ft.alignment.center,
-            padding=3,
-            on_click=toggle_expand,
-            data={"color_original": color_original, "id_habitacion": id_hab}
-        )
-
-        if debe_parpadear:
-            habitaciones_parpadeo.append(habitacion)
-
-        habitaciones_ui[id_hab] = habitacion
-        return habitacion
-
-    # -----------------------------------------------------------------
-    # RECONSTRUIR MAPA
-    # -----------------------------------------------------------------
-    def reconstruir_mapa():
-        global datos, habitaciones_parpadeo, bloque_abierto, habitacion_expandida_id, necesita_reconstruccion
-        necesita_reconstruccion = False
-        habitacion_expandida_id = None
-        bloque_abierto = None
-        habitaciones_ui.clear()
-        contenedor_plantas.controls.clear()
-        habitaciones_parpadeo.clear()
-        datos = obtener_datos()
-
-        sensores = obtener_sensores()
-        humedad_data = sensores["humedad"]["humedad"]  # extraer la lista interna
-        temperatura_data = sensores["temperatura"]["temperatura"]  # idem
-        calidad_aire_data = sensores["calidad_aire"]["calidad_aire"]
-        rangos = sensores["valores_comparativos"]
-
-        ids = datos["habitaciones"]["id_habitacion"]
-        estados = datos["habitaciones"]["estado"]
-        total_habs = len(ids)
-        total_plantas = (total_habs + 9) // 10
-
-        for planta in range(total_plantas):
-            inicio = planta * 10
-            fin = min(inicio + 10, total_habs)
-            fila1 = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
-            fila2 = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
-
-            for i, (id_hab, estado) in enumerate(zip(ids[inicio:fin], estados[inicio:fin])):
-                # extraer valores de rangos individuales
-                temp_min = rangos["temperatura"]["min"][0] if isinstance(rangos["temperatura"]["min"], list) else rangos["temperatura"]["min"]
-                temp_max = rangos["temperatura"]["max"][0] if isinstance(rangos["temperatura"]["max"], list) else rangos["temperatura"]["max"]
-
-                hum_min = rangos["humedad"]["min"][0] if isinstance(rangos["humedad"]["min"], list) else rangos["humedad"]["min"]
-                hum_max = rangos["humedad"]["max"][0] if isinstance(rangos["humedad"]["max"], list) else rangos["humedad"]["max"]
-
-                # crear la habitación pasando los valores correctos
-                hab_ui = crear_habitacion(
-                    i + inicio,
-                    id_hab,
-                    estado,
-                    humedad_data[i + inicio],
-                    temperatura_data[i + inicio],
-                    calidad_aire_data,
-                    rangos
-                )
-
-                if habitacion_expandida_id == id_hab:
-                    hab_ui.width = 170
-                    hab_ui.height = 240
-                    for i, txt in enumerate(hab_ui.content.controls):
-                        txt.size = 16 if i > 0 else 18
-                    bloque_abierto = hab_ui
-
-                if i < 5:
-                    fila1.controls.append(hab_ui)
-                else:
-                    fila2.controls.append(hab_ui)
-
-            contenedor_plantas.controls.append(
-                ft.Column(
-                    [
-                        ft.Text(f"🏥 Planta {planta + 1}", size=20, weight="bold", color="blue"),
-                        fila1,
-                        fila2
-                    ],
-                    spacing=10,
-                    alignment=ft.MainAxisAlignment.CENTER
-                )
-            )
-
+                mostrar_mensaje(f"Error: {mensaje_res}", es_error=True)
+        except ValueError:
+            mostrar_mensaje("El ID debe ser un número", es_error=True)
         page.update()
 
-    # -----------------------------------------------------------------
-    # ACTUALIZACIÓN AUTOMÁTICA Y PARPADEO
-    # -----------------------------------------------------------------
-    def actualizar_sensores_y_colores():
-        global datos
-        if not habitaciones_ui:
+    #--- LÓGICA DE PLANTAS CON CONFIRMACIÓN ---
+    def confirmar_accion_planta(titulo, mensaje, accion_callback):
+        if not campo_planta.value:
+            mostrar_mensaje("⚠️ Selecciona una planta en el desplegable", es_error=True)
             return
 
-        sensores = obtener_sensores()
-        humedad_data = sensores["humedad"]["humedad"]
-        temperatura_data = sensores["temperatura"]["temperatura"]
-        calidad_aire_data = sensores["calidad_aire"]["calidad_aire"]
-        rangos = sensores["valores_comparativos"]
+        def realizar_accion(e):
+            dlg.open = False
+            page.update()
+            ok, res = accion_callback(campo_planta.value)
+            if ok:
+                reconstruir_mapa()
+                mostrar_mensaje(f"✨ Operación exitosa: {res}", es_error=False)
+            else:
+                mostrar_mensaje(f"Fallo: {res}", es_error=True)
 
-        ids = datos["habitaciones"]["id_habitacion"]
-        estados = datos["habitaciones"]["estado"]
+        dlg = ft.AlertDialog(
+            title=ft.Text(titulo),
+            content=ft.Text(mensaje),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda _: (setattr(dlg, "open", False), page.update())),
+                ft.ElevatedButton("Confirmar", bgcolor="red", color="white", on_click=realizar_accion),
+            ],
+        )
+        page.overlay.append(dlg)
+        dlg.open = True
+        page.update()
 
-        for i, id_hab in enumerate(ids):
-            hab_ui = habitaciones_ui.get(id_hab)
-            if not hab_ui:
-                continue  # la habitación aún no existe en UI
+    #--- LÓGICA DE ZOOM ---
+    def abrir_detalle(h_info):
+        tipo_sala = h_info.get("tipo") or h_info.get("tipo_sala") or h_info.get("especialidad") or "No definido"
+        dlg = ft.AlertDialog(
+            title=ft.Text(f"Detalle Habitación {h_info['id']}", weight="bold"),
+            content=ft.Column([
+                ft.Text(f"Tipo: {tipo_sala}", size=16, weight="w500"), 
+                ft.Divider(),
+                ft.Row([ft.Icon(ft.Icons.THERMOSTAT, color="orange"), ft.Text(f"Temperatura: {h_info['temperatura']}°C")]),
+                ft.Row([ft.Icon(ft.Icons.WATER_DROP, color="blue"), ft.Text(f"Humedad: {h_info['humedad']}%")]),
+                ft.Row([ft.Icon(ft.Icons.AIR, color="green"), ft.Text(f"Calidad Aire (CO2): {h_info['calidad_aire'].get('CO2', 0)} ppm")]),
+            ], tight=True, spacing=15),
+            actions=[ft.TextButton("Cerrar", on_click=lambda e: (setattr(dlg, "open", False), page.update()))],
+        )
+        page.overlay.append(dlg)
+        dlg.open = True
+        page.update()
 
-            temperatura = temperatura_data[i]
-            humedad = humedad_data[i]
+    #--- CONSTRUCCIÓN DEL MAPA ---
+    def crear_habitacion_estilo_mapa(h_info, rangos):
+        id_hab = h_info["id"]
+        estado_db = h_info["estado"]
+        temp = h_info["temperatura"]
+        hum = h_info["humedad"]
+        co2 = h_info["calidad_aire"].get("CO2", 0)
+        
+        r_temp = rangos.get("temperatura", {"min": 20, "max": 30})
+        r_hum = rangos.get("humedad", {"min": 34, "max": 40})
+        max_co2 = rangos.get("calidad_aire", {}).get("CO2", {}).get("max", 500)
 
-            en_rango = (
-                rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"]
-                and rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"]
-                and all(calidad_aire_data[clave][i] <= rangos["calidad_aire"][clave]["max"]
-                        for clave in rangos["calidad_aire"])
+        fuera_de_rango = (temp < r_temp["min"] or temp > r_temp["max"] or 
+                         hum < r_hum["min"] or hum > r_hum["max"] or co2 > max_co2)
+
+        color_base = COLOR_DISPONIBLE if not fuera_de_rango else COLOR_OCUPADO
+        
+        container_hab = ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Text(f"{id_hab}", weight="bold", size=18),
+                    ft.Icon(ft.Icons.ZOOM_IN, size=16, color="black45"),
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Text(f"{temp}°C | {hum}%", size=12, weight="w500"),
+                ft.Row([
+                    ft.Icon(ft.Icons.AIR, size=12, color="blue700"),
+                    ft.Text(f"{co2} ppm", size=11, color="blue900", weight="bold"),
+                ], spacing=5),
+                ft.Text(f"Estado: {estado_db}", size=10),
+            ], spacing=3),
+            width=150, height=120,
+            bgcolor=color_base,
+            border=ft.border.all(1, "black26"),
+            border_radius=10,
+            padding=12,
+            ink=True,
+            on_click=lambda _: abrir_detalle(h_info),
+            data={"color_original": color_base}
+        )
+
+        if fuera_de_rango and estado_db == "ocupado":
+            habitaciones_parpadeo.append(container_hab)
+
+        return container_hab
+
+    def reconstruir_mapa():
+        global habitaciones_parpadeo
+        lista_hab, rangos = obtener_datos_mapa()
+        habitaciones_parpadeo.clear()
+        contenedor_plantas.controls.clear()
+        
+        num_plantas = (len(lista_hab) + 9) // 10
+        campo_planta.options = [ft.dropdown.Option(str(i+1)) for i in range(num_plantas)]
+        
+        for p in range(num_plantas):
+            hab_planta = lista_hab[p*10 : (p+1)*10]
+            fila_sup = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
+            for h in hab_planta[:5]: 
+                fila_sup.controls.append(crear_habitacion_estilo_mapa(h, rangos))
+
+            pasillo = ft.Container(
+                content=ft.Text(f"PLANTA {p+1}", weight="bold", color="black45"),
+                bgcolor=COLOR_PASILLO, height=40, width=800, alignment=ft.Alignment(0, 0)
             )
 
-            # actualizar color de fondo
-            hab_ui.bgcolor = "green" if en_rango else "red"
-            hab_ui.data["color_original"] = hab_ui.bgcolor
+            fila_inf = ft.Row(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
+            for h in hab_planta[5:]: 
+                fila_inf.controls.append(crear_habitacion_estilo_mapa(h, rangos))
 
-            # actualizar textos individuales
-            controles = hab_ui.content.controls
-            controles[1].value = f"🌡️ {temperatura}°C"
-            controles[1].color = "black" if rangos["temperatura"]["min"] <= temperatura <= rangos["temperatura"]["max"] else "yellow"
+            contenedor_plantas.controls.append(ft.Column([fila_sup, pasillo, fila_inf], horizontal_alignment="center"))
+        
+        page.update()
 
-            controles[2].value = f"💧 {humedad}%"
-            controles[2].color = "black" if rangos["humedad"]["min"] <= humedad <= rangos["humedad"]["max"] else "yellow"
+    #--- SIDEBAR ---
+    sidebar = ft.Container(
+        content=ft.Column([
+            ft.Text("GESTIÓN MAPA", size=22, weight="bold", color="blue900"),
+            
+            #--- LEYENDA ---
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Container(width=15, height=15, bgcolor=COLOR_DISPONIBLE, border_radius=3),
+                        ft.Text("Dentro de rango", size=12)
+                    ], spacing=10),
+                    ft.Row([
+                        ft.Container(width=15, height=15, bgcolor=COLOR_OCUPADO, border_radius=3),
+                        ft.Text("Fuera de rango", size=12)
+                    ], spacing=10),
+                    ft.Row([
+                        ft.Container(
+                            width=15, height=15, bgcolor=COLOR_ALERTA, border_radius=3,
+                            shadow=ft.BoxShadow(blur_radius=5, color=COLOR_ALERTA)
+                        ),
+                        ft.Text("Alerta: Fuera de rango y Ocupada", size=12, weight="bold")
+                    ], spacing=10),
+                ], spacing=5),
+                padding=ft.padding.only(bottom=10)
+            ),
+            
+            ft.Divider(),
+            ft.Text("Nueva Habitación", weight="bold"),
+            campo_estado, campo_tipo_sala,
+            ft.ElevatedButton("Añadir Sala", icon=ft.Icons.ADD, on_click=agregar_habitacion_ui, width=250),
+            ft.Divider(),
+            ft.Text("Eliminar por ID", weight="bold"),
+            ft.Row([campo_id_text, ft.IconButton(ft.Icons.DELETE_FOREVER, on_click=eliminar_habitacion_ui, icon_color="red")]),
+            ft.Divider(),
+            ft.Text("Gestión de Planta", weight="bold"),
+            campo_planta,
+            ft.Row([
+                ft.IconButton(
+                    ft.Icons.COPY, 
+                    tooltip="Duplicar Planta",
+                    on_click=lambda _: confirmar_accion_planta(
+                        "Duplicar Planta", 
+                        f"¿Deseas duplicar las 10 habitaciones de la Planta {campo_planta.value}?", 
+                        duplicar_planta_control
+                    )
+                ),
+                ft.IconButton(
+                    ft.Icons.DELETE_SWEEP, 
+                    icon_color="red", 
+                    tooltip="Eliminar Planta",
+                    on_click=lambda _: confirmar_accion_planta(
+                        "Eliminar Planta", 
+                        f"¡ATENCIÓN! ¿Seguro que quieres eliminar TODA la Planta {campo_planta.value}?", 
+                        eliminar_planta_control
+                    )
+                )
+            ]),
+            ft.Container(expand=True),
+            ft.ElevatedButton("Actualizar", icon=ft.Icons.REFRESH, on_click=actualizar, width=250),
+            ft.TextButton("Volver al Menú", icon=ft.Icons.ARROW_BACK, on_click=lambda _: mostrar_pantalla_menu_admin(page, repo, usuario))
+        ], spacing=10),
+        width=280, padding=20, bgcolor="white",
+        border_radius=ft.border_radius.only(top_right=20, bottom_right=20),
+        shadow=ft.BoxShadow(blur_radius=10, color="black12")
+    )
 
-            for j, clave in enumerate(["PM2.5","PM10","CO","NO2","CO2","TVOC"], start=3):
-                valor = calidad_aire_data[clave][i]
-                controles[j].value = f"{clave}: {valor}"
-                controles[j].color = "black" if valor <= rangos["calidad_aire"][clave]["max"] else "yellow"
-
-            hab_ui.update()
-
-    async def actualizar_periodicamente():
+    #--- TAREAS ASÍNCRONAS ---
+    async def tarea_parpadeo():
         while True:
             try:
-                actualizar_sensores_y_colores()  # solo actualizar datos y colores
-            except Exception as e:
-                print("Error actualización periódica:", e)
-            await asyncio.sleep(10)
+                if habitaciones_parpadeo:
+                    actuales = list(habitaciones_parpadeo)
+                    for h in actuales: h.bgcolor = COLOR_ALERTA
+                    page.update()
+                    await asyncio.sleep(0.5)
+                    for h in actuales: h.bgcolor = h.data.get("color_original", COLOR_OCUPADO)
+                    page.update()
+                    await asyncio.sleep(0.5)
+                else:
+                    await asyncio.sleep(1)
+            except: break
 
-    async def parpadeo_alerta():
+    async def tarea_actualizacion_automatica():
         while True:
-            for hab in list(habitaciones_parpadeo):
-                if not hab.page:
-                    continue
-                hab.bgcolor = COLOR_ALERTA
-                hab.update()
+            try:
+                await asyncio.sleep(5)
+                reconstruir_mapa()
+            except: break
 
-            await asyncio.sleep(2)
-
-            for hab in list(habitaciones_parpadeo):
-                if not hab.page:
-                    continue
-                hab.bgcolor = hab.data["color_original"]
-                hab.update()
-
-            await asyncio.sleep(6)
-
-
-    # -----------------------------------------------------------------
-    # LAYOUT PRINCIPAL
-    # -----------------------------------------------------------------
-    fila_agregar = ft.Row(
-        controls=[boton_agregar, ft.Column([campo_estado, campo_tipo_sala], spacing=5, alignment=ft.MainAxisAlignment.START)],
-        spacing=15,
-        vertical_alignment=ft.CrossAxisAlignment.START
-    )
-
-    bloque_izquierdo = ft.Column(
-        controls=[
-            ft.Text("🗺️ Índice del mapa", size=18, weight="bold"),
-            ft.Column([
-                ft.Text("🟩 Todo bien", size=14),
-                ft.Text("🟥 Datos fuera de los rangos establecidos", size=14),
-                ft.Text("Recuadro con bordes -> Sala ocupada", size=14),
-                ft.Text("Recuadro sin bordes -> Sala libre", size=14),
-                ft.Text("Texto amarillo -> Datos fuera de rango", size=14),
-            ], spacing=5),
-            ft.Divider(),
-            ft.Text("⚙️ Panel de gestión", size=18, weight="bold"),
-            ft.Row([fila_agregar], spacing=5),
-            ft.Divider(),
-            ft.Row([boton_eliminar_sala, campo_id_text], spacing=5),
-            mensaje_error_eliminar,
-            ft.Divider(),
-            ft.Text("⚙️ Gestión de Plantas", size=18, weight="bold"),
-            ft.Row([boton_duplicar, campo_planta], spacing=5),
-            ft.Row([boton_eliminar_planta], spacing=5),
-            ft.Divider(),
-            ft.Row([boton_actualizar, boton_volver], spacing=10)
-        ],
-        width=420,
-        spacing=15,
-        alignment=ft.MainAxisAlignment.START
-    )
-
-    bloque_derecho = ft.Container(content=contenedor_plantas, bgcolor="#E6F2FF", border=ft.border.all(4, "blue"), padding=20, expand=True)
-
-    layout_principal = ft.Row(controls=[bloque_izquierdo, bloque_derecho], expand=True, vertical_alignment=ft.CrossAxisAlignment.START)
-    page.add(ft.Row(controls=[layout_principal], expand=True))
-
+    #Construcción
+    page.add(ft.Row([sidebar, ft.Container(content=contenedor_plantas, expand=True, padding=20)], expand=True))
+    
     reconstruir_mapa()
-    page.run_task(actualizar_periodicamente)
-    page.run_task(parpadeo_alerta)
+    page.run_task(tarea_parpadeo)
+    page.run_task(tarea_actualizacion_automatica)

@@ -1,149 +1,143 @@
-# vista/cambiar_contrasena_view.py
 import flet as ft
 import hashlib
-
 
 def mostrar_pantalla_cambiar_contrasena(page: ft.Page, repo, usuario):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
     from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
 
-    # Limpia la página
-    page.clean()
-    page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.scroll = None
-    page.bgcolor = None
+    page.controls.clear()
+    page.title = "BlueTech - Cambiar Contraseña"
 
-    # Nuevo campo: contraseña temporal
+    #--- CAMPOS ---
     campo_temporal = ft.TextField(
         label="Contraseña temporal",
         password=True,
         can_reveal_password=True,
-        width=320,
-        prefix_icon=ft.Icons.KEY
+        prefix_icon=ft.Icons.KEY_ROUNDED,
+        border_radius=12,
+        bgcolor=ft.Colors.WHITE
     )
 
     campo_nueva = ft.TextField(
         label="Nueva contraseña",
         password=True,
         can_reveal_password=True,
-        width=320,
-        prefix_icon=ft.Icons.LOCK
+        prefix_icon=ft.Icons.LOCK_RESET_ROUNDED,
+        border_radius=12,
+        bgcolor=ft.Colors.WHITE
     )
 
     campo_confirmar = ft.TextField(
         label="Confirmar contraseña",
         password=True,
         can_reveal_password=True,
-        width=320,
-        prefix_icon=ft.Icons.LOCK
+        prefix_icon=ft.Icons.CHECK_CIRCLE_ROUNDED,
+        border_radius=12,
+        bgcolor=ft.Colors.WHITE
     )
 
-    mensaje = ft.Text("", size=14, text_align=ft.TextAlign.CENTER)
+    mensaje = ft.Text(value="", size=14, weight=ft.FontWeight.W_500)
 
-    btn_guardar = ft.ElevatedButton(
-        "Guardar nueva contraseña",
-        bgcolor="blue",
-        color="white",
-        width=320,
-        height=45
-    )
+    #--- LÓGICA ---
+    def manejar_cambio(e):
+        temp = (campo_temporal.value or "").strip()
+        p1 = (campo_nueva.value or "").strip()
+        p2 = (campo_confirmar.value or "").strip()
 
-    def manejar_guardar(e):
-        temp = campo_temporal.value or ""
-        p1 = campo_nueva.value or ""
-        p2 = campo_confirmar.value or ""
-
-        if temp.strip() == "" or p1.strip() == "" or p2.strip() == "":
-            mensaje.value = "Rellena los 3 campos."
-            mensaje.color = "red"
+        if not all([temp, p1, p2]):
+            mensaje.value = "Completa todos los campos."
+            mensaje.color = ft.Colors.RED_400
             page.update()
             return
 
-        # Validar contraseña temporal contra el hash actual del usuario
-        temp_hash = hashlib.sha256(temp.encode()).hexdigest()
-        if temp_hash != usuario.contrasena_hash:
+        #Verificación con el atributo del modelo: contrasena_hash
+        if hashlib.sha256(temp.encode()).hexdigest() != usuario.contrasena_hash:
             mensaje.value = "La contraseña temporal es incorrecta."
-            mensaje.color = "red"
+            mensaje.color = ft.Colors.RED_400
             page.update()
             return
 
         if p1 != p2:
-            mensaje.value = "Las contraseñas no coinciden."
-            mensaje.color = "red"
+            mensaje.value = "Las contraseñas nuevas no coinciden."
+            mensaje.color = ft.Colors.RED_400
             page.update()
             return
 
-        # Guardar nueva contraseña (hash) + reset de control
         try:
+            #Actualizamos el hash y el estado en el objeto
             usuario.contrasena_hash = hashlib.sha256(p1.encode()).hexdigest()
+            usuario.estado = 1 
             usuario.num_registros = 1
-            usuario.estado = 1
             repo.guardar_cambios()
-        except Exception:
-            mensaje.value = "No se pudo actualizar la contraseña."
-            mensaje.color = "red"
+
+            #Redirección según rol
+            page.controls.clear()
+            if usuario.es_administrador():
+                mostrar_pantalla_menu_admin(page, repo, usuario)
+            elif usuario.es_trabajador():
+                mostrar_pantalla_menu_trabajador(page, repo, usuario)
+            elif usuario.es_tecnico():
+                mostrar_pantalla_menu_tecnico(page, repo, usuario)
+            
+        except Exception as ex:
+            mensaje.value = f"Error al guardar: {str(ex)}"
             page.update()
-            return
 
-        # Redirige automáticamente al menú tras cambiarla
-        if usuario.rol == "administrador":
-            mostrar_pantalla_menu_admin(page, repo, usuario)
-        elif usuario.rol == "tecnico":
-            mostrar_pantalla_menu_tecnico(page, repo, usuario)
-        else:
-            mostrar_pantalla_menu_trabajador(page, repo, usuario)
+    #--- BOTÓN ---
+    boton_guardar = ft.ElevatedButton(
+        content=ft.Text("Actualizar Contraseña"),
+        icon=ft.Icons.SAVE_ROUNDED,
+        width=300,
+        height=50,
+        style=ft.ButtonStyle(
+            bgcolor=ft.Colors.BLUE_800,
+            color=ft.Colors.WHITE,
+            shape=ft.RoundedRectangleBorder(radius=12),
+        ),
+        on_click=manejar_cambio
+    )
 
-
-    btn_guardar.on_click = manejar_guardar
-
-    # === TARJETA (DISEÑO AJUSTADO) ===
-    tarjeta = ft.Container(
+    #--- FORMULARIO ---
+    formulario = ft.Container(
         content=ft.Column(
-            [
-                ft.Text("Cambio de contraseña", size=26, weight="bold", color="blue"),
-                ft.Text(
-                    f"Usuario: {usuario.nombre_usuario}",
-                    size=14,
-                    italic=True,
-                    color="grey",
-                    text_align=ft.TextAlign.CENTER
-                ),
-                ft.Text(
-                    "Introduce tu contraseña temporal y define una nueva contraseña.",
-                    size=13,
-                    color="grey",
-                    text_align=ft.TextAlign.CENTER
-                ),
-                campo_temporal,   # nuevo
+            controls=[
+                ft.Image(src="img/avatar_usuario.png", width=120, height=120),
+                ft.Text("Seguridad", size=28, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_900),
+                ft.Text("Debes actualizar tu contraseña para continuar", color=ft.Colors.BLUE_GREY_400, text_align=ft.TextAlign.CENTER),
+                ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
+                campo_temporal,
                 campo_nueva,
                 campo_confirmar,
-                btn_guardar,
+                ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
+                boton_guardar,
                 mensaje,
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=14,
+            spacing=10,
         ),
-        padding=30,
-        bgcolor="white",
-        border_radius=15,
-        shadow=ft.BoxShadow(blur_radius=10, color="grey"),
-        width=420,
-        height=440,  # ajustada para 3 campos (sin tarjeta enorme)
+        bgcolor=ft.Colors.WHITE,
+        border_radius=20,
+        padding=40,
+        width=450,
+        height=650, 
+        shadow=ft.BoxShadow(blur_radius=20, color=ft.Colors.BLACK26),
     )
 
-    # === FONDO + POSICIÓN TARJETA (MÁS A LA DERECHA) ===
+    #--- LAYOUT ---
     layout = ft.Stack(
         expand=True,
         controls=[
-            ft.Image(src="img/fondo_login.png", fit=ft.ImageFit.COVER, expand=True),
-            ft.Container(
+            ft.Image(
+                src="img/fondo_login.png",
+                fit="cover",
                 expand=True,
-                alignment=ft.alignment.center_right,
-                padding=ft.padding.only(right=120),
-                content=tarjeta
             ),
+            ft.Container(
+                content=formulario,
+                alignment=ft.Alignment(1, 0), 
+                padding=ft.padding.only(right=100),
+            )
         ],
     )
 

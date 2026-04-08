@@ -1,22 +1,58 @@
-import json
-import os
+from data.conexionBD import obtener_conexion
 
-RUTA_JSON = "data/habitacion.json"
+def cambiar_estado_habitacion(id_habitacion):
+    conexion = obtener_conexion()
 
-def cargar_datos():
-    if os.path.exists(RUTA_JSON):
-        with open(RUTA_JSON, "r") as archivo:
-            return json.load(archivo)
-    return {"habitaciones": {"id_habitacion": [], "estado": []}}
+    if conexion is None:
+        print("Error de conexión")
+        return None
 
-def guardar_habitaciones(data):
-    with open(RUTA_JSON, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        cursor = conexion.cursor()
+        # 1. OBTENER ESTADO ACTUAL
+        cursor.execute(
+            "SELECT estado FROM habitacion WHERE id_habitacion = %s",
+            (id_habitacion,)
+        )
+        resultado = cursor.fetchone()
+        if resultado is None:
+            print("Habitación no encontrada")
+            return None
+        estado_actual = resultado[0]
+        # 2. CAMBIAR ESTADO
+        nuevo_estado = "libre" if estado_actual == "ocupado" else "ocupado"
+        cursor.execute(
+            "UPDATE habitacion SET estado = %s WHERE id_habitacion = %s",
+            (nuevo_estado, id_habitacion)
+        )
+        conexion.commit()
+        return nuevo_estado
+    
+    except Exception as e:
+        print("Error:", e)
+        conexion.rollback()
+        return None
 
-def cambiar_estado_habitacion(index):
-    data = cargar_datos()
-    estado_actual = data["habitaciones"]["estado"][index]
-    nuevo_estado = "libre" if estado_actual == "ocupado" else "ocupado"
-    data["habitaciones"]["estado"][index] = nuevo_estado
-    guardar_habitaciones(data)
-    return nuevo_estado
+    finally:
+        cursor.close()
+        conexion.close()
+
+def obtener_habitaciones():
+    conexion = obtener_conexion()
+
+    if conexion is None:
+        return []
+
+    try:
+        cursor = conexion.cursor(dictionary=True)
+        cursor.execute("SELECT id_habitacion, estado, tipo_sala FROM habitacion")
+        habitaciones = cursor.fetchall()
+        return habitaciones
+
+    except Exception as e:
+        print("Error:", e)
+        return []
+
+    finally:
+        cursor.close()
+        conexion.close()

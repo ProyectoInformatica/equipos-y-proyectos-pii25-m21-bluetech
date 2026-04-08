@@ -1,156 +1,147 @@
-import json
 import threading
 import time
 import random
-import os
-from copy import deepcopy
-from datetime import datetime #fecha y hora actual
-from valores_comparativos_model import cargar_valores
-from ticket_model import TicketModel
+import mysql.connector
+from datetime import datetime
 
-ticket_model = TicketModel()
+# ===============================
+# CONFIGURACIÓN DE BASE DE DATOS
+# ===============================
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',       
+    'password': '',
+    'database': 'bluetech'
+}
+
+# Variables globales que llenaremos dinámicamente
+valores_actuales = {}
+info_sensores = {} # Guardará a qué habitación pertenece cada sensor para el print
+sensores_por_tipo = {
+    'Temperatura': [],
+    'Humedad': [],
+    'Calidad de Aire': []
+}
 mutex = threading.Lock()
 
 # ===============================
-# FUNCIONES GENERALES
+# INICIALIZACIÓN DINÁMICA
 # ===============================
-def leer_json(ruta):
+def cargar_sensores_desde_db():
     try:
-        with open(ruta, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error leyendo {ruta}: {e}")
-        return {}
+        conexion = mysql.connector.connect(**DB_CONFIG)
+        cursor = conexion.cursor(dictionary=True)
+        
+        # Traemos los sensores, su tipo y la habitación a la que pertenecen
+        cursor.execute("SELECT id_sensor, tipo_sensor, fk_id_habitacion FROM sensor")
+        sensores = cursor.fetchall()
+        
+        for s in sensores:
+            id_s = s['id_sensor']
+            tipo = s['tipo_sensor']
+            id_hab = s['fk_id_habitacion']
+            
+            info_sensores[id_s] = id_hab # Guardamos la info de la habitación
+            
+            # Los guardamos en su lista y les damos un valor inicial realista
+            if tipo == 'Temperatura':
+                sensores_por_tipo['Temperatura'].append(id_s)
+                valores_actuales[id_s] = 24
+            elif tipo == 'Humedad':
+                sensores_por_tipo['Humedad'].append(id_s)
+                valores_actuales[id_s] = 37
+            elif tipo == 'Calidad de Aire':
+                sensores_por_tipo['Calidad de Aire'].append(id_s)
+                valores_actuales[id_s] = 400
+                
+        print(f"✅ ¡Éxito! {len(sensores)} sensores cargados desde MySQL.")
+        print(f"  - Temperatura: {len(sensores_por_tipo['Temperatura'])} sensores")
+        print(f"  - Humedad: {len(sensores_por_tipo['Humedad'])} sensores")
+        print(f"  - Calidad de Aire: {len(sensores_por_tipo['Calidad de Aire'])} sensores\n")
+        
+        cursor.close()
+        conexion.close()
+    except mysql.connector.Error as e:
+        print(f"❌ Error al conectar a la DB: {e}")
+        exit()
 
-def escribir_json(ruta, datos):
+# ===============================
+# FUNCIÓN PARA INSERTAR EN MYSQL
+# ===============================
+def insertar_medicion(id_sensor, valor, tipo):
     try:
-        with open(ruta, "w") as f:
-            json.dump(datos, f, indent=4)
-    except Exception as e:
-        print(f"Error escribiendo {ruta}: {e}")
+        conexion = mysql.connector.connect(**DB_CONFIG)
+        cursor = conexion.cursor()
+        
+        query = "INSERT INTO medicion (fecha_hora, valor, fk_id_sensor) VALUES (%s, %s, %s)"
+        ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        cursor.execute(query, (ahora, int(valor), id_sensor))
+        conexion.commit()
+        
+        # Print mejorado para ver en qué habitación estamos insertando el dato
+        id_hab = info_sensores.get(id_sensor, "?")
+        print(f"[{ahora}] Habitación {id_hab} | {tipo} -> Sensor {id_sensor:02d}: {int(valor)}")
+        
+        cursor.close()
+        conexion.close()
+    except mysql.connector.Error as e:
+        print(f"Error de MySQL al insertar sensor {id_sensor}: {e}")
 
 # ===============================
-# SISTEMA TICKETS
+# HILOS DE SIMULACIÓN
 # ===============================
-def cargar_limites():
-    """Carga los rangos desde tu archivo de configuración."""
-    try:
-        with open("data/valores_comparativos.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def comprobar_alerta(id_hab, id_sensor, tipo, valor):
-    """Verifica el valor y llama al generador de tickets si es necesario."""
-    rangos = cargar_limites()
-    fuera_de_rango = False
-    limite_str = ""
-    descripcion = ""
-
-    # Lógica para Temperatura y Humedad
-    if tipo in ["temperatura", "humedad"] and tipo in rangos:
-        conf = rangos[tipo]
-        if valor < conf["min"] or valor > conf["max"]:
-            fuera_de_rango = True
-            limite_str = f"{conf['min']}-{conf['max']} {conf.get('unidad', '')}"
-            descripcion = f"Valor de {tipo} fuera de rango: {valor}"
-
-    # Lógica para Gases (Calidad del Aire)
-    elif "calidad_aire" in rangos and tipo in rangos["calidad_aire"]:
-        conf = rangos["calidad_aire"][tipo]
-        if valor > conf["max"]:
-            fuera_de_rango = True
-            limite_str = f"Máx {conf['max']} {conf.get('unidad', '')}"
-            descripcion = f"Nivel crítico de {tipo}: {valor}"
-
-    if fuera_de_rango:
-        # Aquí usamos la función que ya tiene el filtro de duplicados
-        ticket_model.generar_ticket_automatico(
-            id_habitacion=id_hab,
-            id_sensor=id_sensor,
-            nombre="Sistema Automático",
-            tipo_sensor=tipo,
-            valor_detectado=valor,
-            limite_establecido=limite_str,
-            descripcion=descripcion
-        )
-
-# ===============================
-# HILO TEMPERATURA
-# ===============================
-def simular_temperatura(ruta, intervalo=5):
+def simular_temperatura(intervalo=5):
     while True:
         with mutex:
-            data = leer_json(ruta)
-            if "sensores_temp" in data:
-                # Acceso directo para asegurar que se modifica el objeto 'data'
-                ids = data["sensores_temp"].get("id_sensor", [])
-                temps = data["sensores_temp"].get("temperatura", [])
-
-                for i in range(len(temps)):
-                    temps[i] = max(15, min(40, temps[i] + random.randint(-1, 1)))
-                    # IMPORTANTE: No hace falta reasignar a data porque las listas son mutables
-                    # Pero el ID es necesario para el ticket
-                    comprobar_alerta(i+1, ids[i], "temperatura", temps[i])
-
-                escribir_json(ruta, data) # Ahora 'data' lleva los valores nuevos
+            for sensor in sensores_por_tipo['Temperatura']:
+                cambio = random.choice([-1, 0, 1]) # Cambios más suaves para que sea realista
+                valores_actuales[sensor] = max(18, min(32, valores_actuales[sensor] + cambio))
+                insertar_medicion(sensor, valores_actuales[sensor], "Temp")
         time.sleep(intervalo)
 
-# ===============================
-# HILO HUMEDAD
-# ===============================
-def simular_humedad(ruta, intervalo=6):
+def simular_humedad(intervalo=6):
     while True:
         with mutex:
-            data = leer_json(ruta)
-            if "sensores_hum" in data:
-                ids = data["sensores_hum"].get("id_sensor", [])
-                hums = data["sensores_hum"].get("humedad", [])
-
-                for i in range(len(hums)):
-                    hums[i] = max(20, min(90, hums[i] + random.randint(-3, 3)))
-                    comprobar_alerta(i+1, ids[i], "humedad", hums[i])
-
-                escribir_json(ruta, data)
+            for sensor in sensores_por_tipo['Humedad']:
+                cambio = random.choice([-2, -1, 0, 1, 2])
+                valores_actuales[sensor] = max(30, min(60, valores_actuales[sensor] + cambio))
+                insertar_medicion(sensor, valores_actuales[sensor], "Hum ")
         time.sleep(intervalo)
 
-# ===============================
-# HILO CALIDAD DEL AIRE
-# ===============================
-def simular_calidad_aire(ruta, intervalo=7):
+def simular_calidad_aire(intervalo=7):
     while True:
         with mutex:
-            data = leer_json(ruta)
-            if "sensores_cali_aire" in data:
-                ids = data["sensores_cali_aire"].get("id_sensor", [])
-                aire_dict = data["sensores_cali_aire"].get("calidad_aire", {})
-
-                for gas, valores in aire_dict.items():
-                    for i in range(len(valores)):
-                        valores[i] = max(0, valores[i] + random.randint(-5, 5))
-                        # Obtenemos el ID correspondiente al índice i
-                        id_s = ids[i] if i < len(ids) else 0
-                        comprobar_alerta(i+1, id_s, gas, valores[i])
-
-                escribir_json(ruta, data)
+            for sensor in sensores_por_tipo['Calidad de Aire']:
+                cambio = random.choice([-15, -10, 0, 10, 15])
+                valores_actuales[sensor] = max(350, min(800, valores_actuales[sensor] + cambio))
+                insertar_medicion(sensor, valores_actuales[sensor], "Aire")
         time.sleep(intervalo)
 
 # ===============================
 # MAIN
 # ===============================
 if __name__ == "__main__":
-    hilos = [
-        threading.Thread(target=simular_temperatura, args=("data/sensores_temperatura.json",), daemon=True),
-        threading.Thread(target=simular_humedad, args=("data/sensores_humedad.json",), daemon=True),
-        threading.Thread(target=simular_calidad_aire, args=("data/sensores_calidad_aire.json",), daemon=True)
-    ]
+    print("="*40)
+    print("  INICIANDO SIMULADOR BLUETECH v2.0")
+    print("="*40)
+    
+    cargar_sensores_desde_db()
+    
+    if not valores_actuales:
+        print("⚠️ No se encontraron sensores. Verifica tu tabla 'sensor'. Abortando.")
+        exit()
 
-    for h in hilos:
-        h.start()
+    h_temp = threading.Thread(target=simular_temperatura, daemon=True)
+    h_hum = threading.Thread(target=simular_humedad, daemon=True)
+    h_aire = threading.Thread(target=simular_calidad_aire, daemon=True)
 
-    print("Simulación iniciada. Presione Ctrl+C para detener.")
+    h_temp.start()
+    h_hum.start()
+    h_aire.start()
+
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Simulación detenida.")
+        print("\n🛑 Simulación detenida por el usuario.")
