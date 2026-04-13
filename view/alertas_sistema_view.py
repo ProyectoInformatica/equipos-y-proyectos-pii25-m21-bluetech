@@ -1,11 +1,11 @@
 import flet as ft
-from controller.ticket_controller import TicketController
+from controller.alerta_controller import AlertaController
 
 def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
     from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
     
     page.controls.clear()
-    controller = TicketController()
+    controller = AlertaController()
     page.bgcolor = "#F5F7FA"
 
     #--- Columnas por Sensor ---
@@ -24,15 +24,15 @@ def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
         refrescar_tickets()
 
     def desasignar(tid):
-        controller.desasignar_ticket(tid, usuario.id_usuario)
+        controller.desasignar_ticket(tid)
         refrescar_tickets()
 
     def cerrar(tid):
-        controller.finalizar_ticket(tid, usuario.id_usuario)
+        controller.finalizar_ticket(tid, usuario.id_usuario, usuario.nombre_usuario)
         refrescar_tickets()
 
     def estado_chip(estado):
-        es_pendiente = estado == "pendiente"
+        es_pendiente = estado == "Pendiente"
         return ft.Container(
             bgcolor="#ffebee" if es_pendiente else "#e3f2fd",
             padding=ft.padding.symmetric(vertical=6, horizontal=12),
@@ -50,17 +50,18 @@ def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
         id_asignado = t.get("tecnico_id")
         nombre_asignado = t.get("tecnico_nombre", "Desconocido")
         info_tecnico_ui = ft.Container()
-        
-        if t["estado"] == "pendiente":
+        limite_texto = f"{t['limite_min']} - {t['limite_max']}" if t['limite_min'] else f"Max: {t['limite_max']}"
+
+        if t["estado"] == "Pendiente":
             fila_acciones.controls.append(
                 ft.ElevatedButton(
                     content=ft.Text("Atender", color="white"),
                     icon=ft.Icons.PLAY_ARROW,
                     style=ft.ButtonStyle(bgcolor="#1976D2"),
-                    on_click=lambda e, tid=t["id_ticket"]: asignar(tid)
+                    on_click=lambda e, tid=t["id_alerta"]: asignar(tid)
                 )
             )
-        elif t["estado"] == "en_proceso":
+        elif t["estado"] == "En_Proceso":
             if id_asignado == usuario.id_usuario:
                 info_tecnico_ui = ft.Text(
                     "Asignado a ti",
@@ -72,12 +73,12 @@ def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
                         content=ft.Text("Finalizar", color="white"),
                         icon=ft.Icons.CHECK,
                         style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN_700),
-                        on_click=lambda e, tid=t["id_ticket"]: cerrar(tid)
+                        on_click=lambda e, tid=t["id_alerta"]: cerrar(tid)
                     ),
                     ft.OutlinedButton(
                         content=ft.Text("Soltar"),
                         icon=ft.Icons.UNDO,
-                        on_click=lambda e, tid=t["id_ticket"]: desasignar(tid)
+                        on_click=lambda e, tid=t["id_alerta"]: desasignar(tid)
                     )
                 ])
             else:
@@ -95,14 +96,15 @@ def mostrar_pantalla_alertas_sistema(page: ft.Page, repo, usuario):
                 controls=[
                     ft.Row([
                         ft.Column([
-                            ft.Text(f"Ticket #{t['id_ticket']}", weight=ft.FontWeight.BOLD, size=16),
-                            ft.Text(f"Habitación {t['id_habitacion']}", size=12, color=ft.Colors.GREY_600)
+                            ft.Text(f"Alerta #{t['id_alerta']}", weight=ft.FontWeight.BOLD, size=16),
+                            ft.Text(f"Habitación {t['id_habitacion']}", size=12, color=ft.Colors.GREY_600),
+                            ft.Text(f"Sensor ID {t['id_sensor']}", size=12, color=ft.Colors.GREY_600)
                         ], spacing=2),
                         estado_chip(t["estado"])
                     ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                    ft.Text(f"Sensor: {t['tipo_sensor']}"),
+                    ft.Text(f"Sensor {t['tipo_sensor']}"),
                     ft.Text(f"Valor: {t['valor_detectado']}", weight=ft.FontWeight.BOLD),
-                    ft.Text(f"Límite: {t['limite_establecido']}"),
+                    ft.Text(f"Limites establecidos: {[limite_texto]}"),
                     ft.Text(t["descripcion"], size=12, italic=True),
                     info_tecnico_ui,
                     ft.Divider(height=10, thickness=1),

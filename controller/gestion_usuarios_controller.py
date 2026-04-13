@@ -1,5 +1,4 @@
 # controller/gestion_usuarios_controller.py
-import hashlib
 from model.usuario_model import UsuariosModel
 
 AVISO_MIGRACION = "⚠️ IDs sin migrar. Actualiza usuarios.json."

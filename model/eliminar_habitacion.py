@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 
 def eliminar_habitacion(id_habitacion):

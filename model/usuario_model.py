@@ -1,5 +1,5 @@
 # model/usuario_model.py
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 import mysql.connector
 
 BASE_ID_TRABAJADOR = 1001

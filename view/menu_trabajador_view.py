@@ -15,6 +15,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
     from view.mapa_habitaciones_trabajadores_view import mostrar_pantalla_mapa_habitaciones_trabajadores
     from view.valores_comparativos_trabajadores_view import mostrar_pantalla_parametros_sanidad_trabajador
     from view.consumo_sensores_view import mostrar_pantalla_consumo_sensores
+    from view.alertas_usuario_trabajador_view import mostrar_pantalla_alertas_usuario
 
     page.clean()
     page.title = "BlueTech - Panel Operativo"
@@ -119,6 +120,11 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
                 title=ft.Text("Estado de Salas"),
                 on_click=lambda _: navegar(lambda: mostrar_pantalla_estado_salas(page, repo, usuario, origen="trabajador"))
             ),
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.SUPPORT_AGENT), 
+                title=ft.Text("Tickets"),
+                on_click=lambda _: navegar(lambda: mostrar_pantalla_alertas_usuario(page, repo, usuario))
+            ),
             
             ft.Divider(height=20, color="transparent"),
 
@@ -148,7 +154,6 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
             ft.Row([
                 ft.Column([
                     ft.Text("Estado de Planta", size=22, weight="bold"),
-                    ft.Text("Monitorización en vivo para personal operativo", size=14, color="grey600"),
                 ]),
                 ft.IconButton(ft.Icons.FULLSCREEN_ROUNDED, on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario)))
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),

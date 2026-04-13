@@ -17,6 +17,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
     from view.valores_comparativos_admin_view import mostrar_pantalla_parametros_sanidad
     from view.exportar_metricas_view import mostrar_pantalla_exportar_metricas
     from view.consumo_sensores_view import mostrar_pantalla_consumo_sensores
+    from view.alertas_usuario_admin_view import mostrar_pantalla_alertas_usuario
     
     page.clean()
     page.title = "BlueTech - Dashboard de Administración"
@@ -115,9 +116,7 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
                 leading=ft.Icon(ft.Icons.MEETING_ROOM_OUTLINED), title=ft.Text("Estado de Salas"),
                 on_click=lambda _: navegar(lambda: mostrar_pantalla_estado_salas(page, repo, usuario, origen="admin"))
             ),
-
             ft.Divider(height=20, color="transparent"),
-
             ft.Text("ADMINISTRACIÓN", size=11, color="grey500", weight="bold"),
             ft.ListTile(
                 leading=ft.Icon(ft.Icons.PERSON_SEARCH_OUTLINED), title=ft.Text("Gestión de Usuarios"),
@@ -135,6 +134,13 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
                 leading=ft.Icon(ft.Icons.FILE_DOWNLOAD_OUTLINED), title=ft.Text("Exportar Métricas"),
                 on_click=lambda _: navegar(lambda: mostrar_pantalla_exportar_metricas(page, repo, usuario))
             ),
+            ft.Divider(height=20, color="transparent"),
+            ft.Text("SOPORTE", size=11, color="grey500", weight="bold"),
+            ft.ListTile(
+                leading=ft.Icon(ft.Icons.SUPPORT_AGENT), 
+                title=ft.Text("Tickets"),
+                on_click=lambda _: navegar(lambda: mostrar_pantalla_alertas_usuario(page, repo, usuario))
+            ),
 
             ft.Container(expand=True),
             ft.TextButton("Cerrar Sesión", icon=ft.Icons.LOGOUT, on_click=cerrar_sesion, style=ft.ButtonStyle(color="red"))
@@ -150,7 +156,6 @@ def mostrar_pantalla_menu_admin(page: ft.Page, repo, usuario):
             ft.Row([
                 ft.Column([
                     ft.Text("Monitorización en Vivo", size=22, weight="bold"),
-                    ft.Text("Vista de planta en tiempo real", size=14, color="grey600"),
                 ]),
                 ft.IconButton(ft.Icons.FULLSCREEN_ROUNDED, icon_size=28, on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_admin(page, repo, usuario)))
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),

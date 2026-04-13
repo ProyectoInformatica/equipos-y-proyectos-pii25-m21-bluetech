@@ -77,18 +77,25 @@ UNLOCK TABLES;
 
 CREATE TABLE `alerta` (
   `id_alerta` int NOT NULL AUTO_INCREMENT,
-  `estado` varchar(45) NOT NULL,
-  `fecha_hora` datetime NOT NULL,
-  `descripcion` varchar(150) NOT NULL,
-  `valor_detectado` varchar(45) NOT NULL,
-  `nombre_emisor` varchar(45) NOT NULL,
+  `fecha` datetime NOT NULL,
+  `id_habitacion` int NOT NULL,
+  `id_sensor` int NOT NULL,
+  `nombre_emisor` varchar(100) NOT NULL,
   `tipo_sensor` varchar(45) NOT NULL,
-  `fk_id_sensor` int NOT NULL,
+  `valor_detectado` int NOT NULL,
+  `limite_establecido` varchar(45) NOT NULL,
+  `descripcion` varchar(300) DEFAULT NULL,
+  `estado` varchar(45) NOT NULL,
+  `tecnico_id` int DEFAULT NULL,
+  `tecnico_nombre` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id_alerta`),
-  KEY `id_sensor_idx` (`fk_id_sensor`),
-  KEY `fk_tipo_sensro_idx` (`tipo_sensor`),
-  CONSTRAINT `id_sensor` FOREIGN KEY (`fk_id_sensor`) REFERENCES `sensor` (`id_sensor`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `fk_id_habitacion_idx` (`id_habitacion`),
+  KEY `fk_id_sensor_idx` (`id_sensor`),
+  KEY `fk_tecnico_idx` (`tecnico_id`),
+  CONSTRAINT `fk_alerta_habitacion` FOREIGN KEY (`id_habitacion`) REFERENCES `habitacion` (`id_habitacion`),
+  CONSTRAINT `fk_alerta_sensor` FOREIGN KEY (`id_sensor`) REFERENCES `sensor` (`id_sensor`),
+  CONSTRAINT `fk_alerta_tecnico` FOREIGN KEY (`tecnico_id`) REFERENCES `usuario` (`id_usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -97,7 +104,7 @@ CREATE TABLE `alerta` (
 
 LOCK TABLES `alerta` WRITE;
 /*!40000 ALTER TABLE `alerta` DISABLE KEYS */;
-INSERT INTO `alerta` VALUES (1,'No Atendida','2023-10-28 14:30:00','Temperatura máxima superada en sala de aislamiento','26.5','Unidad Central Monitoreo','Temperatura',1),(2,'Atendida','2023-10-28 15:45:00','Niveles de CO2 críticos, requiere ventilación urgente','950.0','Nodo Planta 1','Calidad de Aire',4),(3,'Pendiente','2023-10-29 08:15:00','Humedad por debajo del umbral mínimo permitido','35.0','Módulo Sensor H2','Humedad',2),(4,'Falsa Alarma','2023-10-29 11:20:00','Pico de temperatura anómalo (posible fallo de lectura)','45.0','Unidad Central Monitoreo','Temperatura',3);
+INSERT INTO `alerta` VALUES (1, '2026-04-01 12:06:24', 1, 5, 'Sistema Automático', 'Temperatura', 40, '22.0 - 28.0 °C', 'Nivel crítico de Temperatura: 40', 'Pendiente', NULL, NULL), (2, '2026-04-02 10:06:24', 1, 6, 'Sistema Automático', 'Humedad', 60, '34.0 - 40.0 %', 'Nivel crítico de Humedad: 60', 'Pendiente', NULL, NULL), (3, '2026-04-02 11:06:24', 1, 7, 'Sistema Automático', 'Calidad de Aire', 600, '500.0 ppm', 'Nivel crítico de CO2: 600', 'Pendiente', NULL, NULL);
 /*!40000 ALTER TABLE `alerta` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -220,24 +227,19 @@ UNLOCK TABLES;
 
 CREATE TABLE `ticket` (
   `id_ticket` int NOT NULL AUTO_INCREMENT,
-  `fecha` datetime NOT NULL,
-  `id_habitacion` int NOT NULL,
-  `id_sensor` int NOT NULL,
-  `nombre_emisor` varchar(100) NOT NULL,
-  `tipo_sensor` varchar(45) NOT NULL,
-  `valor_detectado` int NOT NULL,
-  `limite_establecido` varchar(45) NOT NULL,
-  `descripcion` varchar(300) DEFAULT NULL,
+  `fecha_hora` datetime NOT NULL,
   `estado` varchar(45) NOT NULL,
-  `tecnico_id` int DEFAULT NULL,
-  `tecnico_nombre` varchar(100) DEFAULT NULL,
+  `descripcion` varchar(500) NOT NULL,
+  `id_rol_emisor` varchar(45) NOT NULL,
+  `nombre_emisor` varchar(100) DEFAULT NULL,
+  `nombre_tecnico` varchar(100) DEFAULT NULL,
+  `id_emisor` int NOT NULL,
+  `id_tecnico` int DEFAULT NULL,
   PRIMARY KEY (`id_ticket`),
-  KEY `fk_id_habitacion_idx` (`id_habitacion`),
-  KEY `fk_id_sensor_idx` (`id_sensor`),
-  KEY `fk_tecnico_idx` (`tecnico_id`),
-  CONSTRAINT `fk_ticket_habitacion` FOREIGN KEY (`id_habitacion`) REFERENCES `habitacion` (`id_habitacion`),
-  CONSTRAINT `fk_ticket_sensor` FOREIGN KEY (`id_sensor`) REFERENCES `sensor` (`id_sensor`),
-  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`tecnico_id`) REFERENCES `usuario` (`id_usuario`)
+  KEY `fk_ticket_emisor_idx` (`id_emisor`),
+  KEY `fk_ticket_tecnico_idx` (`id_tecnico`),
+  CONSTRAINT `fk_ticket_emisor` FOREIGN KEY (`id_emisor`) REFERENCES `usuario` (`id_usuario`),
+  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`id_tecnico`) REFERENCES `usuario` (`id_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -246,9 +248,32 @@ CREATE TABLE `ticket` (
 --
 
 LOCK TABLES `ticket` WRITE;
-/*!40000 ALTER TABLE `ticket` DISABLE KEYS */;
-INSERT INTO `ticket` VALUES (1, '2026-04-01 12:06:24', 1, 5, 'Sistema Automático', 'Temperatura', 40, '22.0 - 28.0 °C', 'Nivel crítico de Temperatura: 40', 'pendiente', NULL, NULL), (2, '2026-04-02 10:06:24', 1, 6, 'Sistema Automático', 'Humedad', 60, '34.0 - 40.0 %', 'Nivel crítico de Humedad: 60', 'pendiente', NULL, NULL), (3, '2026-04-02 11:06:24', 1, 7, 'Sistema Automático', 'Calidad de Aire', 600, '500.0 ppm', 'Nivel crítico de CO2: 600', 'pendiente', NULL, NULL);
-/*!40000 ALTER TABLE `ticket` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `mensajes`
+--
+
+CREATE TABLE `mensajes` (
+  `id_mensaje` int NOT NULL AUTO_INCREMENT,
+  `fecha_hora` datetime NOT NULL,
+  `texto` text NOT NULL,
+  `rol` varchar(45) NOT NULL,
+  `nombre_emisor` varchar(100) NOT NULL,
+  `id_ticket` int NOT NULL,
+  `id_emisor` int NOT NULL,
+  PRIMARY KEY (`id_mensaje`),
+  KEY `fk_msj_ticket_idx` (`id_ticket`),
+  KEY `fk_msj_usuario_idx` (`id_emisor`),
+  CONSTRAINT `fk_msj_ticket` FOREIGN KEY (`id_ticket`) REFERENCES `ticket` (`id_ticket`),
+  CONSTRAINT `fk_msj_usuario` FOREIGN KEY (`id_emisor`) REFERENCES `usuario` (`id_usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `mensajes`
+--
+
+LOCK TABLES `mensajes` WRITE;
 UNLOCK TABLES;
 
 --

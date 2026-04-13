@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 def cambiar_estado_habitacion(id_habitacion):
     conexion = obtener_conexion()

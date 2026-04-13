@@ -1,7 +1,7 @@
 # model/modeloBlueTech.py
 import hashlib
 import mysql.connector
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 # ============================
 # CONSTANTES

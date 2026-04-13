@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 from model.eliminar_habitacion import eliminar_habitacion
 from model.crear_habitaciones import crear_habitacion_con_sensores
 

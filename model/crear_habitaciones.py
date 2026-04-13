@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 from datetime import datetime
 import random
 

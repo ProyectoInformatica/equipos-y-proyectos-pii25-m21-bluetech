@@ -1,14 +1,19 @@
 import socket
+import json
 import threading
 from datetime import datetime
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 HOST = "127.0.0.1"
 PORT = 5000
 
 def manejar_cliente(conn, addr):
     # Creamos una instancia del modelo
-    from model.alertas_usuario_model import AlertasUsuarioModel
-    model = AlertasUsuarioModel()
+    from model.ticket_model import TicketModel
+    model = TicketModel()
 
     print(f"Cliente conectado: {addr}")
     while True:
@@ -19,24 +24,24 @@ def manejar_cliente(conn, addr):
             request = json.loads(data.decode())
             accion = request.get("accion")
 
-            # OBTENER ALERTAS
-            if accion == "obtener_alertas":
-                response = model.obtener_alertas()
+            # OBTENER TICKETS
+            if accion == "obtener_tickets":
+                response = model.obtener_tickets()
                 conn.send(json.dumps(response).encode())
 
-            # CREAR ALERTA
-            elif accion == "crear_alerta":
-                alerta = request.get("alerta", {})
+            # CREAR TICKETS
+            elif accion == "crear_tickets":
+                tickets = request.get("tickets", {})
                 # Ajustamos fecha_hora si no viene
-                if "fecha_hora" not in alerta:
-                    alerta["fecha_hora"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                result = model.crear_alerta(alerta)
+                if "fecha_hora" not in tickets:
+                    tickets["fecha_hora"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                result = model.crear_tickets(tickets)
                 conn.send(json.dumps(result).encode())
 
             # OBTENER MENSAJES
             elif accion == "obtener_mensajes":
-                id_alerta = request.get("id_alerta")
-                response = model.obtener_mensajes(id_alerta)
+                id_ticket = request.get("id_ticket")
+                response = model.obtener_mensajes(id_ticket)
                 conn.send(json.dumps(response).encode())
 
             # ENVIAR MENSAJE
@@ -49,10 +54,10 @@ def manejar_cliente(conn, addr):
 
             # ASIGNAR TECNICO
             elif accion == "asignar_tecnico":
-                id_alerta = request.get("id_alerta")
+                id_ticket = request.get("id_ticket")
                 id_tecnico = request.get("id_tecnico")
                 nombre_tecnico = request.get("nombre_tecnico")
-                result = model.asignar_ticket(id_alerta, id_tecnico, nombre_tecnico)
+                result = model.asignar_ticket(id_ticket, id_tecnico, nombre_tecnico)
                 conn.send(json.dumps(result).encode())
             
         except Exception as e:
@@ -70,12 +75,8 @@ def iniciar_servidor():
     print(f"Servidor escuchando en {HOST}:{PORT}")
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(
-            target=manejar_cliente,
-            args=(conn, addr)
-        )
+        thread = threading.Thread(target=manejar_cliente,args=(conn, addr))
         thread.start()
 
 if __name__ == "__main__":
-    import json
     iniciar_servidor()

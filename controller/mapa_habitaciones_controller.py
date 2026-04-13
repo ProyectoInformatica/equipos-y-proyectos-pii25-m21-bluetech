@@ -6,9 +6,7 @@ from model.mapa_habitaciones_model import (
     cargar_sensores_calidad_aire,
     cargar_valores_comparativos,
     crear_nueva_habitacion,
-    eliminar_habitacion_por_id,
-    duplicar_planta,
-    eliminar_planta_completa
+    eliminar_habitacion_por_id
 )
 
 def obtener_datos_mapa():

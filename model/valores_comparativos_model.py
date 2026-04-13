@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 def obtener_valores_bd():
     """Obtiene los valores comparativos desde la BD y devuelve un dict para las vistas."""

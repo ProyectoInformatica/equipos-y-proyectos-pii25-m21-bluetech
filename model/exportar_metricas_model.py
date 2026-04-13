@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime
 import os
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 class ExportarMetricasModel:
     def _obtener_conexion(self):

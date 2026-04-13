@@ -1,4 +1,4 @@
-from data.conexionBD import obtener_conexion
+from Database.conexionBD import obtener_conexion
 
 class SensorConsumo:
     def __init__(self, nombre, detalle, w):
