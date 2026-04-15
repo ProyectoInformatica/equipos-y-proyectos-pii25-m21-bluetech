@@ -31,7 +31,7 @@ def manejar_cliente(conn, addr):
 
             # CREAR TICKETS
             elif accion == "crear_tickets":
-                tickets = request.get("tickets", {})
+                tickets = request.get("ticket", {})
                 # Ajustamos fecha_hora si no viene
                 if "fecha_hora" not in tickets:
                     tickets["fecha_hora"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -59,6 +59,14 @@ def manejar_cliente(conn, addr):
                 nombre_tecnico = request.get("nombre_tecnico")
                 result = model.asignar_ticket(id_ticket, id_tecnico, nombre_tecnico)
                 conn.send(json.dumps(result).encode())
+            
+            elif accion == "cerrar_ticket":
+                id_ticket = request.get("id_ticket")
+                if not id_ticket:
+                    response = {"status": "error", "mensaje": "id_ticket vacío"}
+                else:
+                    response = model.cerrar_ticket(id_ticket)
+                conn.send(json.dumps(response).encode())
             
         except Exception as e:
             print("Error:", e)

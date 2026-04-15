@@ -1,108 +1,110 @@
 import flet as ft
-import os
 from controller.exportar_metricas_controller import ExportarMetricasController
+
+#Silenciar warning de panda (Recomienda otra version)
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 def mostrar_pantalla_exportar_metricas(page: ft.Page, repo, usuario):
     from view.menu_admin_view import mostrar_pantalla_menu_admin
-
-    #LIMPIEZA TOTAL
     page.clean()
-    page.padding = 0
-    page.spacing = 0
-
     controller = ExportarMetricasController()
+    tablas = controller.obtener_tablas()
 
-    #--- UI ---
-    mensaje = ft.Text("", size=14, weight="w500", text_align="center")
+    checkboxes = []
+    seleccionadas = []
+    formato_seleccionado = "excel"
 
-    #--- FUNCIÓN PARA GUARDAR DIRECTO ---
-    def descargar_csv(tipo):
-        ok, res = controller.generar_csv(tipo)
-
-        if ok:
-            nombre_archivo = res[0]
-            contenido = res[1]
-
-            #Guardar en Escritorio automáticamente
-            escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
-            ruta = os.path.join(escritorio, nombre_archivo)
-
-            #Asegurar extensión .csv
-            if not ruta.lower().endswith(".csv"):
-                ruta += ".csv"
-
-            try:
-                with open(ruta, "w", encoding="utf-8-sig") as f:
-                    f.write(contenido)
-
-                mensaje.value = f"✅ Guardado en: {ruta}"
-                mensaje.color = ft.Colors.GREEN_700
-
-            except Exception as e:
-                mensaje.value = f"❌ Error al guardar: {str(e)}"
-                mensaje.color = ft.Colors.RED
-
-            page.update()
-
-    #--- BOTONES ---
-    def descargar_excel(e):
-        ok, res = controller.generar_excel_completo()
-
-        if ok:
-            mensaje.value = f"✅ Excel guardado en: {res}"
-            mensaje.color = ft.Colors.GREEN_700
+    def toggle_tabla(e):
+        if e.control.value:
+            seleccionadas.append(e.control.label)
         else:
-            mensaje.value = f"❌ {res}"
-            mensaje.color = ft.Colors.RED
+            seleccionadas.remove(e.control.label)
 
+    # Crear checkboxes dinámicos
+    for t in tablas:
+        cb = ft.Checkbox(label=t, value=False, on_change=toggle_tabla)
+        checkboxes.append(cb)
+
+    def seleccionar_formato(tipo):
+        nonlocal formato_seleccionado
+        formato_seleccionado = tipo
+        btn_excel.bgcolor = "blue" if tipo == "excel" else None
+        btn_csv.bgcolor = "blue" if tipo == "csv" else None
         page.update()
 
-
-    btn_excel = ft.ElevatedButton(
-        "Reporte Maestro (Excel)",
-        icon=ft.Icons.GRID_ON_ROUNDED,
-        width=400,
-        height=60,
-        on_click=descargar_excel
+    btn_excel = ft.Container(
+        content=ft.Image(src="img/excel.png", width=60, height=60),
+        on_click=lambda e: seleccionar_formato("excel"),
+        padding=10,
+        border_radius=10,
+        bgcolor="blue" 
     )
 
-    tarjeta = ft.Container(
+    btn_csv = ft.Container(
+        content=ft.Image(src="img/csv.png", width=60, height=60),
+        on_click=lambda e: seleccionar_formato("csv"),
+        padding=10,
+        border_radius=10,
+    )
+
+    formato = ft.RadioGroup(
+        content=ft.Row(
+            [btn_excel, btn_csv],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=20
+        ),
+        value="excel"
+    )
+
+    mensaje = ft.Text()
+
+    def exportar_click(e):
+        ok, res = controller.exportar(seleccionadas, formato_seleccionado)
+        if ok:
+            if isinstance(res, list):
+                mensaje.value = "✅ CSVs generados en Desktop/BlueTechMetricas"
+            else:
+                mensaje.value = f"✅ Excel generado:\n{res}"
+            mensaje.color = "green"
+        else:
+            mensaje.value = f"❌ {res}"
+            mensaje.color = "red"
+        page.update()
+
+    UI = ft.Container(
         content=ft.Column(
             [
-                ft.Text("Exportar Métricas", size=30, weight="bold"),
-                btn_excel,
-                ft.OutlinedButton("Sensores (CSV)", on_click=lambda _: descargar_csv("sensores")),
-                ft.OutlinedButton("Usuarios (CSV)", on_click=lambda _: descargar_csv("usuarios")),
+                ft.Text("2. Seleccionar Tablas", size=20, weight="bold"),
+                ft.Column(checkboxes, scroll="auto", height=300),
+                ft.Divider(),
+                ft.Text("3. Formato de Exportación", size=20, weight="bold"),
+                formato,
+                ft.ElevatedButton(
+                    "Generar y Exportar",
+                    on_click=exportar_click,
+                    width=300
+                ),
                 mensaje,
-                ft.TextButton("Volver", on_click=lambda _: mostrar_pantalla_menu_admin(page, repo, usuario)),
+                ft.TextButton(
+                    "← Volver al menú",
+                    on_click=lambda _: mostrar_pantalla_menu_admin(page, repo, usuario)
+                ),
             ],
-            horizontal_alignment="center",
-            spacing=15,
+            horizontal_alignment="center"
         ),
+        padding=30,
         bgcolor="white",
-        padding=40,
-        border_radius=20,
-        height=450,
+        border_radius=15,
+        width=400,
+        height=700
     )
 
     page.add(
-        ft.Stack(
-            [
-                ft.Image(
-                    src="img/fondo.png",
-                    fit="cover",
-                    expand=True,
-                    width=page.width,
-                    height=page.height,
-                ),
-                ft.Container(
-                    content=tarjeta,
-                    alignment=ft.Alignment(0, 0),
-                    expand=True,
-                    bgcolor=ft.Colors.with_opacity(0.3, "black"),
-                ),
-            ],
-            expand=True,
+        ft.Container(
+            content=UI,
+            alignment=ft.Alignment(0, 0),
+            expand=True
         )
     )
 

@@ -18,15 +18,76 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         on_submit=lambda e: page.run_task(enviar_mensaje, e),
         bgcolor=ft.Colors.GREY_50
     )
+    campo_ticket = ft.TextField(
+        hint_text="¿En qué podemos ayudarte?",
+        expand=True,
+        border_radius=10,
+        bgcolor=ft.Colors.GREY_50,
+        on_submit=lambda e: crear_ticket(e)
+    )
     boton_asignar = ft.ElevatedButton(
         "Asignarme ticket",
         icon=ft.Icons.ASSIGNMENT_IND,
         visible=False,
         style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE_700, color=ft.Colors.WHITE)
     )
+    boton_cerrar = ft.ElevatedButton(
+        "Cerrar ticket",
+        icon=ft.Icons.CLOSE,
+        visible=False,
+        style=ft.ButtonStyle(bgcolor=ft.Colors.RED_600, color=ft.Colors.WHITE)
+    )
 
     def volver_menu(e):
         mostrar_pantalla_menu_tecnico(page, repo, usuario)
+
+    def cerrar_ticket(e):
+        if ticket_actual["id"]:
+            controller.cerrar_ticket(ticket_actual["id"])
+            cargar_tickets()
+            mensajes_column.controls.clear()
+            ticket_actual["id"] = None
+            boton_cerrar.visible = False
+            boton_asignar.visible = False
+            page.update()
+
+    input_row = ft.Container()
+    def actualizar_input_bar():
+        if not ticket_actual["data"]:
+            input_row.content = ft.Text("Selecciona un ticket")
+        elif ticket_actual["data"].get("id_tecnico") != usuario.id_usuario:
+            input_row.content = ft.Container(
+                content=ft.Text(
+                    "⚠️ Debes asignarte este ticket para responder",
+                    color=ft.Colors.ORANGE_700
+                ),
+                padding=10
+            )
+        else:
+            input_row.content = ft.Row([
+                input_mensaje,
+                ft.FloatingActionButton(
+                    on_click=lambda e: page.run_task(enviar_mensaje, e),
+                    bgcolor=ft.Colors.BLUE_700,
+                    content=ft.Icon(ft.Icons.SEND_ROUNDED, color="white", size=20)
+                )
+            ], spacing=10)
+        page.update()
+
+    def crear_ticket(e):
+        descripcion = campo_ticket.value.strip()
+        if not descripcion:
+            return
+
+        controller.crear_ticket(usuario, descripcion)
+        campo_ticket.value = ""
+        cargar_tickets()
+
+        page.snack_bar = ft.SnackBar(ft.Text("Ticket creado correctamente"))
+        page.snack_bar.open = True
+        page.update()
+
+    boton_cerrar.on_click = cerrar_ticket
 
     #--- Lógica de Mensajes ---
     async def cargar_mensajes(id_ticket):
@@ -64,13 +125,16 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         ticket_actual["id"] = ticket["id_ticket"]
         ticket_actual["data"] = ticket
         boton_asignar.visible = (ticket["estado"] == "pendiente")
+        boton_cerrar.visible = (ticket["estado"] != "cerrado")
         await cargar_mensajes(ticket["id_ticket"])
+        actualizar_input_bar()
+        page.update()
 
     def cargar_tickets():
         tickets_column.controls.clear()
         tickets = controller.obtener_tickets()
         for ticket in tickets:
-            if ticket["estado"] == "pendiente" or ticket.get("id_tecnico") == usuario.id_usuario:
+            if ticket["estado"] != "cerrado" and (ticket["estado"] == "pendiente" or ticket.get("id_tecnico") == usuario.id_usuario):
                 tickets_column.controls.append(
                     ft.ListTile(
                         leading=ft.Icon(ft.Icons.CONFIRMATION_NUMBER_OUTLINED),
@@ -84,6 +148,14 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
 
     async def enviar_mensaje(e):
         if not ticket_actual["id"] or not input_mensaje.value.strip():
+            return
+        # 🔴 NUEVO CONTROL
+        if ticket_actual["data"].get("id_tecnico") != usuario.id_usuario:
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Debes asignarte el ticket antes de responder")
+            )
+            page.snack_bar.open = True
+            page.update()
             return
         controller.enviar_mensaje(usuario, ticket_actual["id"], input_mensaje.value.strip())
         input_mensaje.value = ""
@@ -107,6 +179,16 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         padding=15,
         content=ft.Column([
             ft.Text("Tickets", size=20, weight=ft.FontWeight.BOLD),
+            ft.Row([
+                campo_ticket,
+                ft.FloatingActionButton(
+                    icon=ft.Icons.ADD,
+                    on_click=crear_ticket,
+                    mini=True,
+                    bgcolor=ft.Colors.GREEN_700,
+                    tooltip="Crear Ticket"
+                )
+            ], spacing=10),
             ft.Divider(height=1),
             tickets_column
         ])
@@ -122,14 +204,12 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
             ft.Divider(height=1, color="#E5DDD5"),
             mensajes_column,
             ft.Row([
-                input_mensaje,
-                ft.FloatingActionButton(
-                    on_click=lambda e: page.run_task(enviar_mensaje, e),
-                    bgcolor=ft.Colors.BLUE_700,
-                    content=ft.Icon(ft.Icons.SEND_ROUNDED, color="white", size=20)
-                )
+                input_row
             ], spacing=10),
-            ft.Container(boton_asignar, alignment=ft.alignment.Alignment(0, 0), padding=10)
+            ft.Row([
+                boton_asignar,
+                boton_cerrar
+            ], alignment=ft.MainAxisAlignment.CENTER),
         ])
     )
 

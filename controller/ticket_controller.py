@@ -62,3 +62,6 @@ class TicketController:
         nombre_usuario = getattr(usuario_tecnico, "nombre_usuario", "")
         nombre_completo = f"{nombre} {apellidos}".strip() or nombre_usuario
         return self.client.asignar_ticket(id_ticket, id_tecnico, nombre_completo)
+    
+    def cerrar_ticket(self, id_ticket):
+        return self.client.cerrar_ticket(id_ticket)

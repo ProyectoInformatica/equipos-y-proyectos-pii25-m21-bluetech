@@ -67,12 +67,44 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
 
     async def seleccionar_ticket(ticket):
         ticket_actual["id"] = ticket["id_ticket"]
+        ticket_actual["estado"] = ticket["estado"]
         await cargar_mensajes(ticket["id_ticket"])
+        actualizar_input_bar()
+        page.update()
 
     def cargar_tickets():
         tickets_column.controls.clear()
         tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
+        activos = []
+        cerrados = []
         for ticket in tickets:
+            if ticket["estado"] == "cerrado":
+                cerrados.append(ticket)
+            else:
+                activos.append(ticket)
+        # --- ACTIVOS ---
+        tickets_column.controls.append(
+            ft.Text("🟢 Activos:", size=18, weight=ft.FontWeight.BOLD)
+        )
+        for ticket in activos:
+            tickets_column.controls.append(
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.REPORT_PROBLEM_OUTLINED, 
+                                    color="orange" if ticket["estado"] == "pendiente" else "blue"),
+                    title=ft.Text(ticket["descripcion"], max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+                    subtitle=ft.Text(f"Estado: {ticket['estado']}"),
+                    on_click=lambda e, t=ticket: page.run_task(seleccionar_ticket, t),
+                    shape=ft.RoundedRectangleBorder(radius=10),
+                )
+            )
+        # --- CERRADOS ---
+        tickets_column.controls.append(
+            ft.Divider(height=20)
+        )
+        tickets_column.controls.append(
+            ft.Text("🔴 Cerrados", size=18, weight=ft.FontWeight.BOLD)
+        )
+        for ticket in cerrados:
             tickets_column.controls.append(
                 ft.ListTile(
                     leading=ft.Icon(ft.Icons.REPORT_PROBLEM_OUTLINED, 
@@ -95,13 +127,44 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         page.snack_bar.open = True
         page.update()
 
+    input_row = ft.Container()
+    def actualizar_input_bar():
+        if ticket_actual.get("estado") == "cerrado":
+            input_row.content = ft.Container(
+                content=ft.Text(
+                    "🔴 Este ticket está cerrado (solo lectura)",
+                    color=ft.Colors.RED_700
+                ),
+                padding=10
+            )
+        else:
+            input_row.content = ft.Row([
+                input_mensaje,
+                ft.FloatingActionButton(
+                    on_click=enviar_mensaje,
+                    bgcolor=ft.Colors.BLUE_700,
+                    content=ft.Icon(ft.Icons.SEND_ROUNDED, color="white", size=20)
+                )
+            ], spacing=10)
+        page.update()
+
     async def enviar_mensaje(e):
-        if not ticket_actual["id"] or not input_mensaje.value.strip():
+        if not ticket_actual["id"]:
+            return
+        #si está cerrado no permite enviar
+        if ticket_actual.get("estado") == "cerrado":
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Este ticket está cerrado. No puedes enviar mensajes.")
+            )
+            page.snack_bar.open = True
+            page.update()
+            return
+        if not input_mensaje.value.strip():
             return
         controller.enviar_mensaje(usuario, ticket_actual["id"], input_mensaje.value.strip())
         input_mensaje.value = ""
-        input_mensaje.focus()
-        cargar_mensajes(ticket_actual["id"])
+        await input_mensaje.focus()
+        await cargar_mensajes(ticket_actual["id"])
 
     #--- Diseño de Paneles ---
     panel_tickets = ft.Container(
@@ -131,12 +194,7 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
             ft.Divider(height=1, color=ft.Colors.GREY_400),
             mensajes_column,
             ft.Row([
-                input_mensaje,
-                ft.FloatingActionButton(
-                    on_click=enviar_mensaje,
-                    bgcolor=ft.Colors.BLUE_700,
-                    content=ft.Icon(ft.Icons.SEND_ROUNDED, color="white", size=20)
-                )
+                input_row,
             ], spacing=10)
         ], expand=True)
     )

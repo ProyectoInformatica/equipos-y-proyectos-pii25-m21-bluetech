@@ -106,3 +106,30 @@ class TicketModel:
         finally:
             cursor.close()
             conexion.close()
+
+    def cerrar_ticket(self, id_ticket):
+        conexion = obtener_conexion()
+        if not conexion:
+            return {"status": "error"}
+        try:
+            cursor = conexion.cursor()
+            query = """
+                UPDATE ticket
+                SET estado = 'cerrado'
+                WHERE id_ticket = %s
+            """
+            cursor.execute(query, (id_ticket,))
+            conexion.commit()
+            return {
+                "status": "ok",
+                "id_ticket": id_ticket,
+                "estado": "cerrado"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "mensaje": str(e)
+            }
+        finally:
+            cursor.close()
+            conexion.close()
