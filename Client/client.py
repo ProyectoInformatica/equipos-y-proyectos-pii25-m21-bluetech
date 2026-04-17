@@ -27,12 +27,12 @@ class ApiClient:
         request = {"accion": "crear_tickets","ticket": ticket}
         return self.enviar_peticion(request)
 
-    def asignar_ticket(self, id_ticket, id_tecnico, nombre_tecnico):
+    def asignar_ticket(self, id_ticket, id_destinatario, nombre_destinatario):
         request = {
             "accion": "asignar_tecnico",
             "id_ticket": id_ticket,
-            "id_tecnico": id_tecnico,
-            "nombre_tecnico": nombre_tecnico
+            "id_destinatario": id_destinatario,
+            "nombre_destinatario": nombre_destinatario
         }
         return self.enviar_peticion(request)
 
@@ -40,6 +40,14 @@ class ApiClient:
         request = {
             "accion": "cerrar_ticket",
             "id_ticket": id_ticket
+        }
+        return self.enviar_peticion(request)
+
+    def redirigir_ticket(self, id_ticket, rol_destino):
+        request = {
+            "accion": "redirigir_ticket",
+            "id_ticket": id_ticket,
+            "rol_destino": rol_destino
         }
         return self.enviar_peticion(request)
 

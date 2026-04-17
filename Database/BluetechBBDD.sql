@@ -230,16 +230,21 @@ CREATE TABLE `ticket` (
   `fecha_hora` datetime NOT NULL,
   `estado` varchar(45) NOT NULL,
   `descripcion` varchar(500) NOT NULL,
-  `id_rol_emisor` varchar(45) NOT NULL,
+  `id_rol_emisor` int NOT NULL,
   `nombre_emisor` varchar(100) DEFAULT NULL,
-  `nombre_tecnico` varchar(100) DEFAULT NULL,
+  `nombre_destinatario` varchar(100) DEFAULT NULL,
   `id_emisor` int NOT NULL,
-  `id_tecnico` int DEFAULT NULL,
+  `id_destinatario` int DEFAULT NULL,
+  `rol_destinatario` int NOT NULL,
   PRIMARY KEY (`id_ticket`),
   KEY `fk_ticket_emisor_idx` (`id_emisor`),
-  KEY `fk_ticket_tecnico_idx` (`id_tecnico`),
+  KEY `fk_ticket_tecnico_idx` (`id_destinatario`),
+  KEY `fk_ticket_rol_destinatario_idx` (`rol_destinatario`),
+  KEY `fk_ticket_rol_emisor_idx` (`id_rol_emisor`),
   CONSTRAINT `fk_ticket_emisor` FOREIGN KEY (`id_emisor`) REFERENCES `usuario` (`id_usuario`),
-  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`id_tecnico`) REFERENCES `usuario` (`id_usuario`)
+  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`id_destinatario`) REFERENCES `usuario` (`id_usuario`),
+  CONSTRAINT `fk_ticket_rol_destinatario` FOREIGN KEY (`rol_destinatario`) REFERENCES `rol` (`id_rol`),
+  CONSTRAINT `fk_ticket_rol_emisor` FOREIGN KEY (`id_rol_emisor`) REFERENCES `rol` (`id_rol`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

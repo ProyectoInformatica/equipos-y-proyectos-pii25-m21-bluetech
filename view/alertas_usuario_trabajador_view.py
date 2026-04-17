@@ -1,5 +1,6 @@
 import flet as ft
 from controller.ticket_controller import TicketController
+import asyncio
 
 def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
@@ -9,6 +10,10 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
     controller = TicketController()
     ticket_actual = {"id": None}
     
+    escribiendo = {"valor": False}
+    def escribir(valor):
+        escribiendo["valor"] = valor
+
     #--- Componentes de la interfaz ---
     mensajes_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
     tickets_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True)
@@ -18,6 +23,8 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         expand=True,
         border_radius=25,
         bgcolor=ft.Colors.GREY_50,
+        on_focus=lambda e: escribir(True),
+        on_blur=lambda e: escribir(False),
         on_submit=lambda e: page.run_task(enviar_mensaje, e)
     )
     
@@ -29,12 +36,24 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         on_submit=lambda e: crear_ticket(e)
     )
 
+    destino_dropdown = ft.Dropdown(
+        options=[
+            ft.dropdown.Option(key="2", text="Administrador"),
+            ft.dropdown.Option(key="3", text="Técnico")
+        ],
+        value="3"
+    )
+
     #VOLVER
     def volver_menu(e):
         mostrar_pantalla_menu_trabajador(page, repo, usuario)
 
     #CARGAR MENSAJES
     async def cargar_mensajes(id_ticket):
+        try:
+            _ = mensajes_column.page
+        except:
+            return
         mensajes_column.controls.clear()
         mensajes = controller.obtener_mensajes(id_ticket)
         for m in mensajes:
@@ -63,7 +82,10 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
             )
             mensajes_column.controls.append(burbuja)
         page.update()
-        await mensajes_column.scroll_to(offset=-1, duration=500)
+        try:
+            await mensajes_column.scroll_to(offset=-1, duration=500)
+        except:
+            pass
 
     async def seleccionar_ticket(ticket):
         ticket_actual["id"] = ticket["id_ticket"]
@@ -119,8 +141,10 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
 
     def crear_ticket(e):
         descripcion = campo_ticket.value.strip()
-        if not descripcion: return
-        controller.crear_ticket(usuario, descripcion)
+        if not descripcion: 
+            return
+        rol_destino = int(destino_dropdown.value)
+        controller.crear_ticket(usuario, descripcion, rol_destino)
         campo_ticket.value = ""
         cargar_tickets()
         page.snack_bar = ft.SnackBar(ft.Text("Ticket creado correctamente"))
@@ -152,6 +176,18 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         if not ticket_actual["id"]:
             return
         #si está cerrado no permite enviar
+        tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
+        ticket = next((t for t in tickets if t["id_ticket"] == ticket_actual["id"]), None)
+        if ticket and ticket["estado"] == "cerrado":
+            ticket_actual["estado"] = "cerrado"
+            page.snack_bar = ft.SnackBar(
+                ft.Text("Este ticket acaba de ser cerrado")
+            )
+            page.snack_bar.open = True
+            actualizar_input_bar()
+            page.update()
+            return
+    
         if ticket_actual.get("estado") == "cerrado":
             page.snack_bar = ft.SnackBar(
                 ft.Text("Este ticket está cerrado. No puedes enviar mensajes.")
@@ -159,12 +195,34 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
             page.snack_bar.open = True
             page.update()
             return
+        
         if not input_mensaje.value.strip():
             return
+        
         controller.enviar_mensaje(usuario, ticket_actual["id"], input_mensaje.value.strip())
         input_mensaje.value = ""
         await input_mensaje.focus()
         await cargar_mensajes(ticket_actual["id"])
+
+    async def auto_refresh():
+        while True:
+            await asyncio.sleep(3)
+            try:
+                _ = page.controls
+            except:
+                break
+            cargar_tickets()
+            if ticket_actual.get("id"):
+                tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
+                ticket = next((t for t in tickets if t["id_ticket"] == ticket_actual["id"]), None)
+
+                if ticket:
+                    ticket_actual["estado"] = ticket["estado"]
+                    if ticket["estado"] == "cerrado":
+                        actualizar_input_bar()
+
+                if not escribiendo["valor"]:
+                    await cargar_mensajes(ticket_actual["id"])
 
     #--- Diseño de Paneles ---
     panel_tickets = ft.Container(
@@ -179,6 +237,7 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
                 ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=crear_ticket, mini=True, 
                                         bgcolor=ft.Colors.GREEN_700, tooltip="Crear Ticket")
             ], spacing=10),
+            destino_dropdown,
             ft.Divider(height=20),
             tickets_column
         ])
@@ -218,3 +277,4 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
     )
 
     cargar_tickets()
+    page.run_task(auto_refresh)
