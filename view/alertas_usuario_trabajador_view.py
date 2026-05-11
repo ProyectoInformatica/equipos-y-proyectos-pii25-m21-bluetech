@@ -7,17 +7,26 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
     page.clean()
     page.bgcolor = "#F0F2F5"
 
+    auto_refresh_running = {"value": True}
+
+    rol_map = {
+        "trabajador": 1,
+        "administrador": 2,
+        "tecnico": 3
+    }
+    rol_usuario = rol_map.get(usuario.rol)
+
     controller = TicketController()
     ticket_actual = {"id": None}
-    
+
+    mensajes_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
+    tickets_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True)
+
     escribiendo = {"valor": False}
+
     def escribir(valor):
         escribiendo["valor"] = valor
 
-    #--- Componentes de la interfaz ---
-    mensajes_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
-    tickets_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True)
-    
     input_mensaje = ft.TextField(
         hint_text="Escribe un mensaje...",
         expand=True,
@@ -27,44 +36,48 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         on_blur=lambda e: escribir(False),
         on_submit=lambda e: page.run_task(enviar_mensaje, e)
     )
-    
+
     campo_ticket = ft.TextField(
         hint_text="¿En qué podemos ayudarte?",
         expand=True,
         border_radius=10,
         bgcolor=ft.Colors.GREY_50,
-        on_submit=lambda e: crear_ticket(e)
+        on_submit=lambda e: page.run_task(crear_ticket, e)
     )
 
-    destino_dropdown = ft.Dropdown(
+    selector_destino = ft.Dropdown(
+        label="Enviar a",
+        value="3",
+        width=200,
         options=[
-            ft.dropdown.Option(key="2", text="Administrador"),
-            ft.dropdown.Option(key="3", text="Técnico")
+            ft.dropdown.Option("2", "Administrador"),
+            ft.dropdown.Option("3", "Técnico"),
         ],
-        value="3"
     )
 
-    #VOLVER
     def volver_menu(e):
+        auto_refresh_running["value"] = False
         mostrar_pantalla_menu_trabajador(page, repo, usuario)
 
-    #CARGAR MENSAJES
-    async def cargar_mensajes(id_ticket):
-        try:
-            _ = mensajes_column.page
-        except:
+    async def cargar_mensajes(id_ticket, limpiar=False):
+        if limpiar:
+            mensajes_column.controls.clear()
+            # Al limpiar, pedimos la carga completa del historial
+            lista_msj = controller.actualizar_chat(id_ticket, solo_nuevos=False)
+        else:
+            # En el auto-refresh, pedimos solo lo nuevo
+            lista_msj = controller.actualizar_chat(id_ticket, solo_nuevos=True)
+        if not lista_msj:
             return
-        mensajes_column.controls.clear()
-        mensajes = controller.obtener_mensajes(id_ticket)
-        for m in mensajes:
+        # Ahora simplemente recorremos lo que recibimos
+        for m in lista_msj:
             es_mio = m["id_emisor"] == usuario.id_usuario
             burbuja = ft.Row(
                 alignment=ft.MainAxisAlignment.END if es_mio else ft.MainAxisAlignment.START,
                 controls=[
                     ft.Container(
                         content=ft.Column([
-                            ft.Text(m["nombre_emisor"], size=11, weight=ft.FontWeight.BOLD, 
-                                    color=ft.Colors.BLUE_GREY_700),
+                            ft.Text(m["nombre_emisor"], size=11, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_GREY_700),
                             ft.Text(m["texto"], size=14, selectable=True),
                             ft.Text(m["fecha_hora"], size=9, color=ft.Colors.GREY_600),
                         ], spacing=3, tight=True),
@@ -82,28 +95,33 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
             )
             mensajes_column.controls.append(burbuja)
         page.update()
-        try:
-            await mensajes_column.scroll_to(offset=-1, duration=500)
-        except:
-            pass
+        # Hacemos scroll si añadimos mensajes
+        await mensajes_column.scroll_to(offset=-1, duration=500)
 
     async def seleccionar_ticket(ticket):
         ticket_actual["id"] = ticket["id_ticket"]
-        ticket_actual["estado"] = ticket["estado"]
-        await cargar_mensajes(ticket["id_ticket"])
+        ticket_actual["data"] = ticket
+        await cargar_mensajes(ticket["id_ticket"], limpiar=True)
         actualizar_input_bar()
         page.update()
 
     def cargar_tickets():
+        controller.obtener_tickets_procesados(usuario, rol_usuario)
+        todos = controller.obtener_todos_los_tickets()
         tickets_column.controls.clear()
-        tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
         activos = []
         cerrados = []
-        for ticket in tickets:
-            if ticket["estado"] == "cerrado":
+        for ticket in todos:
+            es_creador = int(ticket.get("id_emisor") or 0) == int(usuario.id_usuario)
+            es_asignado = int(ticket.get("id_destinatario") or 0) == int(usuario.id_usuario)
+            esta_libre = not ticket.get("id_destinatario")
+            # 🔵 ACTIVOS
+            if ticket["estado"] != "cerrado":
+                if esta_libre or es_asignado or es_creador:
+                    activos.append(ticket)
+            # 🔴 CERRADOS (solo los creados por el usuario)
+            elif es_creador:
                 cerrados.append(ticket)
-            else:
-                activos.append(ticket)
         # --- ACTIVOS ---
         tickets_column.controls.append(
             ft.Text("🟢 Activos:", size=18, weight=ft.FontWeight.BOLD)
@@ -111,40 +129,34 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         for ticket in activos:
             tickets_column.controls.append(
                 ft.ListTile(
-                    leading=ft.Icon(ft.Icons.REPORT_PROBLEM_OUTLINED, 
-                                    color="orange" if ticket["estado"] == "pendiente" else "blue"),
-                    title=ft.Text(ticket["descripcion"], max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+                    leading=ft.Icon(ft.Icons.REPORT_PROBLEM_OUTLINED),
+                    title=ft.Text(ticket["descripcion"], max_lines=1),
                     subtitle=ft.Text(f"Estado: {ticket['estado']}"),
                     on_click=lambda e, t=ticket: page.run_task(seleccionar_ticket, t),
-                    shape=ft.RoundedRectangleBorder(radius=10),
                 )
             )
         # --- CERRADOS ---
-        tickets_column.controls.append(
-            ft.Divider(height=20)
-        )
+        tickets_column.controls.append(ft.Divider(height=20))
         tickets_column.controls.append(
             ft.Text("🔴 Cerrados", size=18, weight=ft.FontWeight.BOLD)
         )
         for ticket in cerrados:
             tickets_column.controls.append(
                 ft.ListTile(
-                    leading=ft.Icon(ft.Icons.REPORT_PROBLEM_OUTLINED, 
-                                    color="orange" if ticket["estado"] == "pendiente" else "blue"),
-                    title=ft.Text(ticket["descripcion"], max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+                    leading=ft.Icon(ft.Icons.CHECK_CIRCLE, color="grey"),
+                    title=ft.Text(ticket["descripcion"], max_lines=1),
                     subtitle=ft.Text(f"Estado: {ticket['estado']}"),
                     on_click=lambda e, t=ticket: page.run_task(seleccionar_ticket, t),
-                    shape=ft.RoundedRectangleBorder(radius=10),
                 )
             )
         page.update()
 
-    def crear_ticket(e):
+    async def crear_ticket(e):
         descripcion = campo_ticket.value.strip()
-        if not descripcion: 
+        if not descripcion:
             return
-        rol_destino = int(destino_dropdown.value)
-        controller.crear_ticket(usuario, descripcion, rol_destino)
+        destino = selector_destino.value
+        controller.crear_ticket(usuario, descripcion, destino)
         campo_ticket.value = ""
         cargar_tickets()
         page.snack_bar = ft.SnackBar(ft.Text("Ticket creado correctamente"))
@@ -152,79 +164,48 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         page.update()
 
     input_row = ft.Container()
+
     def actualizar_input_bar():
-        if ticket_actual.get("estado") == "cerrado":
+        if not ticket_actual.get("data"):
+            input_row.content = ft.Text("Selecciona un ticket")
+            page.update()
+            return
+        t = ticket_actual["data"]
+        es_creador = int(t.get("id_emisor") or 0) == int(usuario.id_usuario)
+        es_asignado = int(t.get("id_destinatario") or 0) == int(usuario.id_usuario)
+        puedo_escribir = es_creador or es_asignado
+        if t["estado"] == "cerrado":
+            input_row.content = ft.Text("Ticket cerrado", color="red")
+        elif not puedo_escribir:
             input_row.content = ft.Container(
-                content=ft.Text(
-                    "🔴 Este ticket está cerrado (solo lectura)",
-                    color=ft.Colors.RED_700
-                ),
-                padding=10
+                content=ft.Text("No puedes escribir: No estás asignado a este ticket", color="orange"),
+                padding=10, bgcolor=ft.Colors.AMBER_50, border_radius=10
             )
         else:
-            input_row.content = ft.Row([
-                input_mensaje,
-                ft.FloatingActionButton(
-                    on_click=enviar_mensaje,
-                    bgcolor=ft.Colors.BLUE_700,
-                    content=ft.Icon(ft.Icons.SEND_ROUNDED, color="white", size=20)
-                )
-            ], spacing=10)
+            input_row.content = ft.Row([input_mensaje, ft.FloatingActionButton(icon=ft.Icons.SEND, on_click=enviar_mensaje)])
         page.update()
 
     async def enviar_mensaje(e):
-        if not ticket_actual["id"]:
+        if not ticket_actual["id"] or not input_mensaje.value.strip():
             return
-        #si está cerrado no permite enviar
-        tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
-        ticket = next((t for t in tickets if t["id_ticket"] == ticket_actual["id"]), None)
-        if ticket and ticket["estado"] == "cerrado":
-            ticket_actual["estado"] = "cerrado"
-            page.snack_bar = ft.SnackBar(
-                ft.Text("Este ticket acaba de ser cerrado")
-            )
-            page.snack_bar.open = True
-            actualizar_input_bar()
-            page.update()
-            return
-    
-        if ticket_actual.get("estado") == "cerrado":
-            page.snack_bar = ft.SnackBar(
-                ft.Text("Este ticket está cerrado. No puedes enviar mensajes.")
-            )
+        if ticket_actual["data"]["estado"] == "cerrado":
+            page.snack_bar = ft.SnackBar(ft.Text("Este ticket está cerrado"))
             page.snack_bar.open = True
             page.update()
             return
-        
-        if not input_mensaje.value.strip():
-            return
-        
         controller.enviar_mensaje(usuario, ticket_actual["id"], input_mensaje.value.strip())
         input_mensaje.value = ""
-        await input_mensaje.focus()
         await cargar_mensajes(ticket_actual["id"])
 
     async def auto_refresh():
-        while True:
-            await asyncio.sleep(3)
-            try:
-                _ = page.controls
-            except:
-                break
+        while auto_refresh_running["value"]:
+            await asyncio.sleep(2)
+            controller.tickets_cache.clear()
             cargar_tickets()
             if ticket_actual.get("id"):
-                tickets = controller.obtener_tickets_usuario(usuario.id_usuario)
-                ticket = next((t for t in tickets if t["id_ticket"] == ticket_actual["id"]), None)
+                await cargar_mensajes(ticket_actual["id"], limpiar=False)
+            page.update()
 
-                if ticket:
-                    ticket_actual["estado"] = ticket["estado"]
-                    if ticket["estado"] == "cerrado":
-                        actualizar_input_bar()
-
-                if not escribiendo["valor"]:
-                    await cargar_mensajes(ticket_actual["id"])
-
-    #--- Diseño de Paneles ---
     panel_tickets = ft.Container(
         expand=1,
         bgcolor=ft.Colors.WHITE,
@@ -233,11 +214,18 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         content=ft.Column([
             ft.Text("Mis Reportes", size=20, weight=ft.FontWeight.BOLD),
             ft.Row([
-                campo_ticket,
-                ft.FloatingActionButton(icon=ft.Icons.ADD, on_click=crear_ticket, mini=True, 
-                                        bgcolor=ft.Colors.GREEN_700, tooltip="Crear Ticket")
+                ft.Column([
+                    campo_ticket,
+                    selector_destino,
+                ]),
+                ft.FloatingActionButton(
+                    icon=ft.Icons.ADD,
+                    on_click=lambda e: page.run_task(crear_ticket, e),
+                    mini=True,
+                    bgcolor=ft.Colors.GREEN_700,
+                    tooltip="Crear Ticket"
+                )
             ], spacing=10),
-            destino_dropdown,
             ft.Divider(height=20),
             tickets_column
         ])
@@ -250,31 +238,27 @@ def mostrar_pantalla_alertas_usuario(page: ft.Page, repo, usuario):
         padding=15,
         content=ft.Column([
             ft.Text("Chat con Soporte", size=20, weight=ft.FontWeight.BOLD),
-            ft.Divider(height=1, color=ft.Colors.GREY_400),
             mensajes_column,
-            ft.Row([
-                input_row,
-            ], spacing=10)
-        ], expand=True)
+            input_row
+        ])
     )
 
-    #--- Header y Main Layout ---
     page.add(
         ft.Container(
             expand=True,
             padding=10,
             content=ft.Column([
                 ft.Row([
-                    ft.Row([
-                        ft.Icon(ft.Icons.SUPPORT_AGENT, size=30, color=ft.Colors.BLUE_700),
-                        ft.Text("Centro de Ayuda BlueTech", size=28, weight=ft.FontWeight.BOLD),
-                    ]),
-                    ft.IconButton(ft.Icons.ARROW_BACK_IOS_NEW, on_click=volver_menu, tooltip="Volver al Menú")
+                    ft.Text("Centro de Ayuda BlueTech", size=28, weight=ft.FontWeight.BOLD),
+                    ft.IconButton(ft.Icons.ARROW_BACK_IOS_NEW, on_click=volver_menu)
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                ft.Row([panel_tickets, panel_mensajeria], expand=True, spacing=15)
-            ], expand=True)
+                ft.Row([panel_tickets, panel_mensajeria], expand=True)
+            ])
         )
     )
 
     cargar_tickets()
-    page.run_task(auto_refresh)
+
+    if not getattr(page, "auto_started", False):
+        page.auto_started = True
+        page.run_task(auto_refresh)
