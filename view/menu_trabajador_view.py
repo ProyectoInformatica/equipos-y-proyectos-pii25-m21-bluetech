@@ -1,5 +1,6 @@
 import flet as ft
 import asyncio
+from view.grafico_consumo_dashboard import crear_panel_grafico_picos
 from controller.mapa_habitaciones_controller import obtener_datos_mapa
 
 #--- ESTILOS DEL MAPA ---
@@ -162,13 +163,21 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
         ])
     )
 
+    grafico_metricas = crear_panel_grafico_picos(page, altura=205)
+
     tarjeta_inferior = ft.Container(
-        height=180, bgcolor="white", border_radius=15, padding=20,
+        height=285,
+        bgcolor="white",
+        border_radius=15,
+        padding=20,
         shadow=ft.BoxShadow(blur_radius=10, color="black12"),
-        content=ft.Column([
-            ft.Text("Métricas y Estadísticas", size=18, weight="bold"),
-            ft.Container(expand=True, content=ft.Text("Espacio reservado para gráficos mensuales...", color="grey400"), alignment=ft.Alignment(0,0))
-        ]),
+        content=ft.Column(
+            [
+                ft.Text("Métricas y Estadísticas", size=18, weight="bold"),
+                grafico_metricas
+            ],
+            spacing=12
+        ),
         alignment=ft.Alignment(0, 0)
     )
 
