@@ -230,21 +230,16 @@ CREATE TABLE `ticket` (
   `fecha_hora` datetime NOT NULL,
   `estado` varchar(45) NOT NULL,
   `descripcion` varchar(500) NOT NULL,
-  `id_rol_emisor` int NOT NULL,
+  `id_rol_emisor` varchar(45) NOT NULL,
   `nombre_emisor` varchar(100) DEFAULT NULL,
-  `nombre_destinatario` varchar(100) DEFAULT NULL,
+  `nombre_tecnico` varchar(100) DEFAULT NULL,
   `id_emisor` int NOT NULL,
-  `id_destinatario` int DEFAULT NULL,
-  `rol_destinatario` int NOT NULL,
+  `id_tecnico` int DEFAULT NULL,
   PRIMARY KEY (`id_ticket`),
   KEY `fk_ticket_emisor_idx` (`id_emisor`),
-  KEY `fk_ticket_tecnico_idx` (`id_destinatario`),
-  KEY `fk_ticket_rol_destinatario_idx` (`rol_destinatario`),
-  KEY `fk_ticket_rol_emisor_idx` (`id_rol_emisor`),
+  KEY `fk_ticket_tecnico_idx` (`id_tecnico`),
   CONSTRAINT `fk_ticket_emisor` FOREIGN KEY (`id_emisor`) REFERENCES `usuario` (`id_usuario`),
-  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`id_destinatario`) REFERENCES `usuario` (`id_usuario`),
-  CONSTRAINT `fk_ticket_rol_destinatario` FOREIGN KEY (`rol_destinatario`) REFERENCES `rol` (`id_rol`),
-  CONSTRAINT `fk_ticket_rol_emisor` FOREIGN KEY (`id_rol_emisor`) REFERENCES `rol` (`id_rol`)
+  CONSTRAINT `fk_ticket_tecnico` FOREIGN KEY (`id_tecnico`) REFERENCES `usuario` (`id_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -319,3 +314,77 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-03-24 17:02:17
+
+-- ============================================================
+-- CHECKPOINT - SENSOR BIORDINARIO
+-- ============================================================
+-- Se añade soporte para un nuevo sensor llamado "Biordinario".
+-- Este sensor es diferente a los sensores anteriores porque genera
+-- dos datos por cada lectura:
+--
+--   1. Un dato numérico.
+--   2. Un dato alfanumérico.
+--
+-- Por este motivo se crea una tabla específica llamada
+-- medicion_biordinario, en lugar de modificar directamente la tabla
+-- medicion original. Así se evita romper el funcionamiento actual de
+-- temperatura, humedad y gas.
+-- ============================================================
+
+
+-- ------------------------------------------------------------
+-- Tabla: medicion_biordinario
+-- ------------------------------------------------------------
+-- Esta tabla almacena las mediciones del nuevo sensor biordinario.
+--
+-- Campos:
+--   id_medicion_biordinario:
+--       Identificador único de cada medición.
+--
+--   fecha_hora:
+--       Fecha y hora en la que se registra la medición.
+--
+--   valor_numerico:
+--       Dato numérico generado por el sensor.
+--
+--   valor_alfanumerico:
+--       Dato textual generado por el sensor.
+--
+--   fk_id_sensor:
+--       Clave foránea que relaciona la medición con el sensor
+--       registrado en la tabla sensor.
+-- ------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS medicion_biordinario (
+    id_medicion_biordinario INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_hora DATETIME NOT NULL,
+    valor_numerico FLOAT NOT NULL,
+    valor_alfanumerico VARCHAR(100) NOT NULL,
+    fk_id_sensor INT NOT NULL,
+    FOREIGN KEY (fk_id_sensor) REFERENCES sensor(id_sensor)
+);
+
+
+-- ------------------------------------------------------------
+-- Inserción del sensor Biordinario
+-- ------------------------------------------------------------
+-- Se registra el nuevo sensor en la tabla sensor para que las
+-- mediciones de la tabla medicion_biordinario puedan asociarse
+-- a un sensor real mediante fk_id_sensor.
+--
+-- En este caso:
+--   estado = 'Activo'
+--   fecha_instalacion = '2026-05-20'
+--   fk_id_habitacion = 1
+--   fk_id_parametro = 1
+--   consumo = '0.00'
+--   tipo_sensor = 'Biordinario'
+--
+-- Se usa fk_id_parametro = 1 para mantener la integridad referencial,
+-- ya que ese parámetro existe en la tabla parametro.
+-- ------------------------------------------------------------
+
+INSERT INTO sensor 
+(estado, fecha_instalacion, fk_id_habitacion, fk_id_parametro, consumo, tipo_sensor)
+VALUES 
+('Activo', '2026-05-20', 1, 1, '0.00', 'Biordinario');
