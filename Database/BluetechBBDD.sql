@@ -310,6 +310,24 @@ INSERT INTO `valores_comparativos` (`id_rango`, `min`, `max`, `id_parametro`) VA
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
+-- Añadido Biordinario
+CREATE TABLE sensor_biordinario (
+    id_registro INT NOT NULL AUTO_INCREMENT,
+    id_sensor INT NOT NULL,
+    fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    valor INT NOT NULL,
+    estado BOOLEAN NOT NULL,
+
+    PRIMARY KEY (id_registro),
+
+    CONSTRAINT fk_biordinario_sensor
+    FOREIGN KEY (id_sensor)
+    REFERENCES sensor(id_sensor)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4;
+--
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;

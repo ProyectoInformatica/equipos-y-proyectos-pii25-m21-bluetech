@@ -8,6 +8,35 @@ app = Flask(__name__)
 ID_SENSOR_TEMP = 5
 ID_SENSOR_HUM = 6
 ID_SENSOR_GAS = 7
+from flask import Flask, request
+from Database.conexionBD import obtener_conexion
+
+app = Flask(__name__)
+
+# Sensores normales
+ID_SENSOR_TEMP = 5
+ID_SENSOR_HUM = 6
+ID_SENSOR_GAS = 7
+
+# Sensor biomédico
+ID_SENSOR_BIO = 20 # <---- Añadido
+
+# Añadido ----
+def guardar_sensor_biordinario(valor, estado):
+    conexion = obtener_conexion()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            query = """INSERT INTO sensor_biordinario(id_sensor,valor,estado) VALUES(%s,%s,%s)"""
+            cursor.execute(
+                query,
+                (ID_SENSOR_BIO, valor, estado)
+            )
+            conexion.commit()
+        finally:
+            cursor.close()
+            conexion.close()
+# ----
 
 def guardar_medicion(id_sensor, valor):
     conexion = obtener_conexion()
@@ -25,6 +54,17 @@ def guardar_medicion(id_sensor, valor):
 
 @app.route("/datos", methods=["GET"])
 def recibir_datos():
+    # Añadido ---
+    sensor = request.args.get("sensor")
+    if sensor == "biordinario":
+        valor = request.args.get("valor")
+        estado = request.args.get("estado")
+        if valor is None or estado is None:
+            return "Faltan datos biordinario", 400
+        guardar_sensor_biordinario(int(valor),int(estado))
+        return "Biordinario guardado", 200
+    # ----
+
     temp = request.args.get("temp")
     hum = request.args.get("hum")
     gas = request.args.get("gas")

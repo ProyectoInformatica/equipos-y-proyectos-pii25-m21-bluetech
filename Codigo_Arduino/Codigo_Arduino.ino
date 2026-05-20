@@ -3,9 +3,9 @@
 #include "DHT.h"
 
 // WiFi
-const char* ssid       = "iPhone de Brent";
-const char* password   = "bntt2025";
-const char* serverName = "http://172.20.10.4:5000/datos";
+const char* ssid       = "ssid_wifi";
+const char* password   = "......";
+const char* serverName = "http://ip_ordenador:5000/datos";
 
 // DHT11
 #define DHTPIN   25
@@ -14,6 +14,10 @@ DHT dht(DHTPIN, DHTTYPE);
 
 // MQ-2
 #define MQ2PIN 32
+
+//Sensor Biordinario
+#define PIN_RX 34    // <----- Añadido
+#define PIN_TX 35    // <----- Añadido
 
 // ── LEDs por sensor ───────────────────────────────────────────
 #define LED_VERDE1    26
@@ -58,6 +62,58 @@ void setup() {
 
   dht.begin();
   pinMode(MQ2PIN, INPUT);
+  
+  // Añadido ---
+  void inicializarSensor() {   
+    pinMode(PIN_RX, INPUT);
+    pinMode(PIN_TX, INPUT);
+  }
+  // ----
+
+  // Añadido ---
+  void leerDatosOrdinarios(){
+    DatosBiordinario datos;
+    datos.valor = analogRead(PIN_RX);
+    datos.estado = (datos.valor > 500);
+    return datos;
+  }
+  // ----
+
+  // Añadido ---
+  void comprobarDatosDisponibles(){
+    return digitalRead(PIN_RX);
+  }
+  // ----
+
+  // Añadido ---
+  void DatabaseInsert(DatosBiordinario datos) {
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("[ERROR] WiFi desconectado");
+      return;
+    }
+
+    HTTPClient http;
+
+    String url = String(serverName)
+              + "?sensor=biordinario"
+              + "&valor=" + String(datos.valor)
+              + "&estado=" + String(datos.estado);
+
+    http.begin(url);
+
+    int codigo = http.GET();
+
+    if (codigo > 0) {
+      Serial.print("Sensor guardado -> ");
+      Serial.println(codigo);
+    } else {
+      Serial.print("[ERROR] ");
+      Serial.println(codigo);
+    }
+
+    http.end();
+  }
+  // ----
 
   int leds[] = {
     LED_VERDE1, LED_AMARILLO1, LED_ROJO1,
