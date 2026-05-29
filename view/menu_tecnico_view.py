@@ -2,128 +2,141 @@ import flet as ft
 import asyncio
 from view.grafico_consumo_dashboard import crear_panel_grafico_picos
 from controller.ticket_controller import TicketController
+from controller.mapa_habitaciones_controller import obtener_datos_mapa
 
 # --- CONSTANTES DE ESTILO ---
 COLOR_PRIMARIO = ft.Colors.BLUE_700
 COLOR_BG = "#F0F2F5"
 COLOR_SIDEBAR = ft.Colors.WHITE
-COLOR_CHAT_BG = "#E5DDD5" # Color clásico de fondo de chat
+COLOR_CHAT_BG = "#E5DDD5"
+
+# --- COLORES MAPA ---
+COLOR_DISPONIBLE = "#A8D5BA"
+COLOR_OCUPADO = "#F2A2A2"
+COLOR_ALERTA = "#FF0000"
+COLOR_PASILLO = "#EDF2F7"
+
 
 def mostrar_pantalla_menu_tecnico(page: ft.Page, repo, usuario):
+
     from view.login_view import mostrar_pantalla_login
     from view.alertas_sistema_view import mostrar_pantalla_alertas_sistema
     from view.alertas_usuario_tecnico_view import mostrar_pantalla_alertas_usuario
-    
+    from view.mapa_habitaciones_trabajadores_view import mostrar_pantalla_mapa_habitaciones_trabajadores
+
     page.clean()
     page.title = "BlueTech - Dashboard Técnico"
     page.bgcolor = COLOR_BG
     page.padding = 0
 
     controller = TicketController()
+
     ticket_actual = {"id": None, "data": None}
 
-    # --- COMPONENTES DEL CHAT (Tu lógica) ---
-    mensajes_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True, spacing=10)
-    tickets_column = ft.Column(scroll=ft.ScrollMode.ADAPTIVE, expand=True)
-    
-    input_mensaje = ft.TextField(
-        hint_text="Escribe un mensaje...",
+    # =========================
+    # MAPA (MISMO QUE TRABAJADOR)
+    # =========================
+    habitaciones_parpadeo = []
+    contenedor_mapa_vivo = ft.Column(
+        scroll=ft.ScrollMode.AUTO,
         expand=True,
-        border_radius=25,
-        bgcolor=ft.Colors.GREY_50,
-        text_size=13,
-        on_submit=lambda e: page.run_task(enviar_mensaje_task)
+        spacing=20
     )
 
-    boton_asignar = ft.ElevatedButton(
-        "Asignarme este ticket",
-        icon=ft.Icons.ASSIGNMENT_IND,
-        visible=False,
-        on_click=lambda e: asignarme_ticket_logic(),
-        style=ft.ButtonStyle(bgcolor=COLOR_PRIMARIO, color=ft.Colors.WHITE)
-    )
+    def crear_habitacion_estilo_mapa(h_info, rangos):
+        id_hab = h_info["id"]
+        estado_db = h_info["estado"]
+        temp = h_info["temperatura"]
+        hum = h_info["humedad"]
+        co2 = h_info["calidad_aire"].get("CO2", 0)
 
-    # --- FUNCIONES DE LÓGICA (Sockets + UI) ---
-    async def cargar_mensajes(id_ticket):
-        mensajes_column.controls.clear()
-        mensajes = controller.obtener_mensajes(id_ticket)
-        for m in mensajes:
-            es_tecnico = m["rol"] == "tecnico"
-            mensajes_column.controls.append(
+        r_temp = rangos.get("temperatura", {"min": 20, "max": 30})
+        r_hum = rangos.get("humedad", {"min": 34, "max": 40})
+        max_co2 = rangos.get("calidad_aire", {}).get("CO2", {}).get("max", 500)
+
+        fuera_de_rango = (
+            temp < r_temp["min"] or temp > r_temp["max"] or
+            hum < r_hum["min"] or hum > r_hum["max"] or
+            co2 > max_co2
+        )
+
+        color_base = COLOR_DISPONIBLE if not fuera_de_rango else COLOR_OCUPADO
+
+        container_hab = ft.Container(
+            content=ft.Column([
+                ft.Text(f"{id_hab}", weight="bold", size=15),
+                ft.Text(f"{temp}°C | {hum}%", size=10),
                 ft.Row(
-                    alignment=ft.MainAxisAlignment.END if es_tecnico else ft.MainAxisAlignment.START,
-                    controls=[
-                        ft.Container(
-                            content=ft.Column([
-                                ft.Text(m["nombre_emisor"], size=10, weight="bold", color=ft.Colors.BLUE_700),
-                                ft.Text(m["texto"], size=13),
-                                ft.Text(m["fecha_hora"], size=9, color=ft.Colors.GREY_600),
-                            ], spacing=2, tight=True),
-                            bgcolor="#DCF8C6" if es_tecnico else ft.Colors.WHITE,
-                            padding=12,
-                            border_radius=ft.border_radius.only(
-                                top_left=12, top_right=12, 
-                                bottom_left=12 if es_tecnico else 2, 
-                                bottom_right=2 if es_tecnico else 12
-                            ),
-                            width=280,
-                        )
-                    ]
+                    [ft.Icon(ft.Icons.AIR, size=10), ft.Text(f"{co2}", size=9)],
+                    spacing=2
+                ),
+            ], spacing=2, alignment=ft.MainAxisAlignment.CENTER),
+            width=115,
+            height=90,
+            bgcolor=color_base,
+            border_radius=10,
+            padding=8,
+            data={"color_original": color_base}
+        )
+
+        if fuera_de_rango and estado_db == "ocupado":
+            habitaciones_parpadeo.append(container_hab)
+
+        return container_hab
+
+    def reconstruir_mapa_dashboard():
+        lista_hab, rangos = obtener_datos_mapa()
+
+        habitaciones_parpadeo.clear()
+        contenedor_mapa_vivo.controls.clear()
+
+        num_plantas = (len(lista_hab) + 9) // 10
+
+        for p in range(num_plantas):
+            hab_planta = lista_hab[p * 10:(p + 1) * 10]
+
+            fila_sup = ft.Row(spacing=12, alignment=ft.MainAxisAlignment.CENTER)
+            fila_inf = ft.Row(spacing=12, alignment=ft.MainAxisAlignment.CENTER)
+
+            for i, h in enumerate(hab_planta):
+                (fila_sup if i < 5 else fila_inf).controls.append(
+                    crear_habitacion_estilo_mapa(h, rangos)
+                )
+
+            pasillo = ft.Container(
+                content=ft.Text(
+                    f"PLANTA {p + 1}",
+                    size=11,
+                    weight="bold",
+                    color="black45"
+                ),
+                bgcolor=COLOR_PASILLO,
+                height=30,
+                width=650,
+                alignment=ft.Alignment(0, 0),
+                border_radius=5
+            )
+
+            contenedor_mapa_vivo.controls.append(
+                ft.Column(
+                    [fila_sup, pasillo, fila_inf],
+                    horizontal_alignment="center"
                 )
             )
-        page.update()
-        # --- AUTO-SCROLL AL FINAL ---
-        await asyncio.sleep(0.1) 
-        await mensajes_column.scroll_to(offset=-1, duration=500, curve=ft.AnimationCurve.DECELERATE)
 
-    async def seleccionar_ticket(ticket):
-        ticket_actual["id"] = ticket["id_ticket"]
-        ticket_actual["data"] = ticket
-        boton_asignar.visible = (ticket["estado"] == "pendiente")
-        await cargar_mensajes(ticket["id_ticket"])
-
-    def cargar_tickets():
-        tickets_column.controls.clear()
-        tickets = controller.obtener_tickets()
-        for t in tickets:
-            # Solo mostramos pendientes o los que ya tiene este técnico
-            if t["estado"] == "pendiente" or t.get("id_tecnico") == usuario.id_usuario:
-                tickets_column.controls.append(
-                    ft.Container(
-                        content=ft.ListTile(
-                            leading=ft.Icon(ft.Icons.CONFIRMATION_NUMBER_OUTLINED, color=COLOR_PRIMARIO),
-                            title=ft.Text(t["descripcion"], size=13, weight="bold", max_lines=1),
-                            subtitle=ft.Text(f"{t['nombre_emisor']} • {t['estado']}", size=11),
-                            on_click=lambda e, sel=t: page.run_task(seleccionar_ticket, sel),
-                        ),
-                        border_radius=10,
-                        margin=ft.margin.only(bottom=5),
-                        bgcolor=ft.Colors.GREY_50
-                    )
-                )
         page.update()
 
-    async def enviar_mensaje_task(e=None):
-        if not ticket_actual["id"] or not input_mensaje.value.strip():
-            return
-        controller.enviar_mensaje(usuario, ticket_actual["id"], input_mensaje.value.strip())
-        input_mensaje.value = ""
-        page.update()
-        await cargar_mensajes(ticket_actual["id"])
-
-    def asignarme_ticket_logic():
-        if ticket_actual["id"]:
-            controller.asignar_ticket(ticket_actual["id"], usuario)
-            cargar_tickets()
-            boton_asignar.visible = False
-            page.update()
-
-    # --- ESTRUCTURA SIDEBAR ---
+    # =========================
+    # SIDEBAR
+    # =========================
     def item_menu(icono, texto, seleccionado=False, accion=None):
         return ft.Container(
             content=ft.ListTile(
-                leading=ft.Icon(icono, color=COLOR_PRIMARIO if seleccionado else ft.Colors.BLACK54),
-                title=ft.Text(texto, weight="bold" if seleccionado else "normal", size=14),
+                leading=ft.Icon(icono,
+                                color=COLOR_PRIMARIO if seleccionado else ft.Colors.BLACK54),
+                title=ft.Text(texto,
+                              weight="bold" if seleccionado else "normal",
+                              size=14),
                 on_click=accion,
             ),
             bgcolor=ft.Colors.BLUE_50 if seleccionado else ft.Colors.TRANSPARENT,
@@ -131,98 +144,177 @@ def mostrar_pantalla_menu_tecnico(page: ft.Page, repo, usuario):
         )
 
     sidebar = ft.Container(
-        width=280, bgcolor=COLOR_SIDEBAR, padding=30,
+        width=280,
+        bgcolor=COLOR_SIDEBAR,
+        padding=30,
         content=ft.Column([
             ft.Row([
-                ft.CircleAvatar(content=ft.Icon(ft.Icons.PERSON), bgcolor=ft.Colors.BLUE_50, radius=25),
+                ft.CircleAvatar(
+                    content=ft.Icon(ft.Icons.PERSON),
+                    bgcolor=ft.Colors.BLUE_50,
+                    radius=25
+                ),
                 ft.Column([
                     ft.Text(usuario.nombre_usuario, weight="bold"),
                     ft.Text("Técnico", color=ft.Colors.GREY_600, size=12)
                 ], spacing=1)
             ], spacing=15),
+
             ft.Divider(height=40, color="transparent"),
+
             item_menu(ft.Icons.DASHBOARD_ROUNDED, "Dashboard", True),
-            item_menu(ft.Icons.DASHBOARD_CUSTOMIZE_OUTLINED, "Alertas Sistema", False, 
-                    lambda _: (page.clean(), mostrar_pantalla_alertas_sistema(page, repo, usuario))),
-            item_menu(ft.Icons.SUPPORT_AGENT, "Mis Notificaciones", False,
-                    lambda _: (page.clean(), mostrar_pantalla_alertas_usuario(page, repo, usuario))),
+
+            item_menu(
+                ft.Icons.MAP_OUTLINED,
+                "Mapa Hospital",
+                False,
+                lambda _: (
+                    page.clean(),
+                    mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario, origen="tecnico")
+                )
+            ),
+
+            item_menu(
+                ft.Icons.DASHBOARD_CUSTOMIZE_OUTLINED,
+                "Alertas Sistema",
+                False,
+                lambda _: (
+                    page.clean(),
+                    mostrar_pantalla_alertas_sistema(page, repo, usuario)
+                )
+            ),
+
+            item_menu(
+                ft.Icons.SUPPORT_AGENT,
+                "Mis Notificaciones",
+                False,
+                lambda _: (
+                    page.clean(),
+                    mostrar_pantalla_alertas_usuario(page, repo, usuario)
+                )
+            ),
+
             ft.Container(expand=True),
-            ft.TextButton("Cerrar Sesión", icon=ft.Icons.LOGOUT, on_click=lambda _: (setattr(usuario, 'estado', 2), repo.guardar_cambios(), mostrar_pantalla_login(page, repo)), style=ft.ButtonStyle(color="red"))
+
+            ft.TextButton(
+                "Cerrar Sesión",
+                icon=ft.Icons.LOGOUT,
+                on_click=lambda _: (
+                    setattr(usuario, "estado", 2),
+                    repo.guardar_cambios(),
+                    mostrar_pantalla_login(page, repo)
+                ),
+                style=ft.ButtonStyle(color="red")
+            )
         ])
     )
 
-    # --- PANEL DE COMUNICACIÓN INTEGRADO ---
-    tarjeta_comunicaciones = ft.Container(
-        expand=True, bgcolor="white", border_radius=15, padding=20,
-        shadow=ft.BoxShadow(blur_radius=10, color="black12"),
-        content=ft.Row([
-            # Sub-panel Izquierdo: Lista de Tickets
+    # =========================
+    # TARJETA MAPA (ARRIBA)
+    # =========================
+    tarjeta_mapa = ft.Container(
+        expand=True,
+        bgcolor="white",
+        border_radius=15,
+        padding=25,
+        shadow=ft.BoxShadow(blur_radius=15, color="black12"),
+        content=ft.Column([
+            ft.Row([
+                ft.Text("Estado de Planta (Mapa en vivo)",
+                        size=22,
+                        weight="bold"),
+                ft.IconButton(
+                    ft.Icons.FULLSCREEN_ROUNDED,
+                    on_click=lambda _: (
+                        page.clean(),
+                        mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario, origen="tecnico")
+                    )
+                )
+            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+
+            ft.Divider(height=30),
+
             ft.Container(
-                width=250,
-                content=ft.Column([
-                    ft.Text("Tickets Disponibles", weight="bold", size=16),
-                    ft.Divider(),
-                    tickets_column
-                ])
-            ),
-            ft.VerticalDivider(width=1),
-            # Sub-panel Derecho: Chat
-            ft.Container(
-                expand=True,
-                content=ft.Column([
-                    ft.Row([
-                        ft.Text("Chat de Soporte", weight="bold", size=16),
-                        boton_asignar
-                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                    ft.Container(
-                        content=mensajes_column, 
-                        expand=True, 
-                        width=1000,
-                        bgcolor=COLOR_CHAT_BG, 
-                        border_radius=10, 
-                        padding=15
-                    ),
-                    ft.Row([
-                        input_mensaje,
-                        ft.IconButton(ft.Icons.SEND_ROUNDED, icon_color=COLOR_PRIMARIO, on_click=lambda e: page.run_task(enviar_mensaje_task))
-                    ])
-                ])
+                content=contenedor_mapa_vivo,
+                expand=True
             )
-        ], spacing=20)
+        ])
     )
 
+    # =========================
+    # GRÁFICO INFERIOR
+    # =========================
     grafico_metricas = crear_panel_grafico_picos(page, altura=220)
 
-    # --- GRÁFICO (Placeholder) ---
     tarjeta_inferior = ft.Container(
         height=305,
         bgcolor="white",
         border_radius=15,
         padding=20,
         shadow=ft.BoxShadow(blur_radius=10, color="black12"),
-        content=ft.Column(
-            [
-                ft.Text("Métricas y Estadísticas", size=18, weight="bold"),
-                grafico_metricas
-            ],
-            spacing=12
-        )
+        content=ft.Column([
+            ft.Text("Métricas y Estadísticas",
+                    size=18,
+                    weight="bold"),
+            grafico_metricas
+        ], spacing=12)
     )
 
-    # --- COMPOSICIÓN FINAL ---
+    # =========================
+    # PANEL PRINCIPAL
+    # =========================
+    panel_principal = ft.Container(
+        expand=True,
+        padding=30,
+        content=ft.Column([
+            ft.Text(
+                f"Panel Operativo: {usuario.nombre_usuario}",
+                size=24,
+                weight="bold"
+            ),
+            tarjeta_mapa,
+            tarjeta_inferior
+        ], spacing=20)
+    )
+
+    # =========================
+    # PARPADEO + ACTUALIZACIÓN
+    # =========================
+    async def parpadeo_dashboard():
+        while True:
+            try:
+                if habitaciones_parpadeo:
+                    for h in habitaciones_parpadeo:
+                        h.bgcolor = COLOR_ALERTA
+                    page.update()
+                    await asyncio.sleep(0.5)
+
+                    for h in habitaciones_parpadeo:
+                        h.bgcolor = h.data["color_original"]
+                    page.update()
+                    await asyncio.sleep(0.5)
+                else:
+                    await asyncio.sleep(1)
+            except:
+                break
+
+    async def auto_actualizar():
+        while True:
+            try:
+                await asyncio.sleep(5)
+                reconstruir_mapa_dashboard()
+            except:
+                break
+
+    # =========================
+    # COMPOSICIÓN FINAL
+    # =========================
     page.add(
-        ft.Row([
-            sidebar,
-            ft.Container(
-                expand=True, padding=30,
-                content=ft.Column([
-                    ft.Text(f"Panel Operativo: {usuario.nombre_usuario}", size=24, weight="bold"),
-                    tarjeta_comunicaciones,
-                    tarjeta_inferior
-                ], spacing=20)
-            )
-        ], expand=True, spacing=0)
+        ft.Row([sidebar, panel_principal],
+               expand=True,
+               spacing=0)
     )
 
-    # Inicializar datos
-    cargar_tickets()
+    reconstruir_mapa_dashboard()
+    page.run_task(parpadeo_dashboard)
+    page.run_task(auto_actualizar)

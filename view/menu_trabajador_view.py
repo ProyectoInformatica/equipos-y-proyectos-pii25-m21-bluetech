@@ -114,7 +114,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
             ft.ListTile(
                 leading=ft.Icon(ft.Icons.MAP_OUTLINED), 
                 title=ft.Text("Mapa de Hospital"),
-                on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario))
+                on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario, origen="trabajador"))
             ),
             ft.ListTile(
                 leading=ft.Icon(ft.Icons.MEETING_ROOM_OUTLINED), 
@@ -156,7 +156,7 @@ def mostrar_pantalla_menu_trabajador(page: ft.Page, repo, usuario):
                 ft.Column([
                     ft.Text("Estado de Planta", size=22, weight="bold"),
                 ]),
-                ft.IconButton(ft.Icons.FULLSCREEN_ROUNDED, on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario)))
+                ft.IconButton(ft.Icons.FULLSCREEN_ROUNDED, on_click=lambda _: navegar(lambda: mostrar_pantalla_mapa_habitaciones_trabajadores(page, repo, usuario, origen="trabajador")))
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Divider(height=30),
             ft.Container(content=contenedor_mapa_vivo, expand=True)
