@@ -10,7 +10,7 @@ COLOR_PASILLO = "#EDF2F7"
 
 habitaciones_parpadeo = []
 
-def mostrar_pantalla_mapa_habitaciones_trabajadores(page: ft.Page, repo, usuario):
+def mostrar_pantalla_mapa_habitaciones_trabajadores(page: ft.Page, repo, usuario, origen):
     from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
     global habitaciones_parpadeo 
     
@@ -44,6 +44,14 @@ def mostrar_pantalla_mapa_habitaciones_trabajadores(page: ft.Page, repo, usuario
         page.overlay.append(dlg)
         dlg.open = True
         page.update()
+
+    def volver_menu(e):
+        if origen == "trabajador":
+            from view.menu_trabajador_view import mostrar_pantalla_menu_trabajador
+            mostrar_pantalla_menu_trabajador(page, repo, usuario)
+        else:
+            from view.menu_tecnico_view import mostrar_pantalla_menu_tecnico
+            mostrar_pantalla_menu_tecnico(page, repo, usuario)
 
     #--- CONSTRUCCIÓN DE TARJETAS ---
     def crear_habitacion_estilo_mapa(h_info, rangos):
@@ -145,9 +153,9 @@ def mostrar_pantalla_mapa_habitaciones_trabajadores(page: ft.Page, repo, usuario
                 width=250
             ),
             ft.TextButton(
-                "Volver al Menú", 
-                icon=ft.Icons.ARROW_BACK, 
-                on_click=lambda _: mostrar_pantalla_menu_trabajador(page, repo, usuario)
+                "Volver al Menú",
+                icon=ft.Icons.ARROW_BACK,
+                on_click=volver_menu
             )
         ], spacing=10),
         width=280, padding=20, bgcolor="white",
